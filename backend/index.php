@@ -37,12 +37,21 @@ switch ($path) {
         require_once __DIR__ . '/api/scrape-app.php';
         break;
 
+    case '/api/apps':
+        require_once __DIR__ . '/api/apps.php';
+        break;
+
     default:
-        http_response_code(404);
-        echo json_encode([
-            'success' => false,
-            'error' => 'Endpoint not found'
-        ]);
+        // Handle dynamic routes like /api/agent-stats/{appName}
+        if (preg_match('/^\/api\/agent-stats\/(.+)$/', $path, $matches)) {
+            require_once __DIR__ . '/api/agent-stats.php';
+        } else {
+            http_response_code(404);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Endpoint not found'
+            ]);
+        }
         break;
 }
 ?>

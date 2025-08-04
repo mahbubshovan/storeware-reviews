@@ -1,15 +1,17 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import './App.css'
 import AppSelector from './components/AppSelector'
 import SummaryStats from './components/SummaryStats'
 import ReviewDistribution from './components/ReviewDistribution'
 import LatestReviews from './components/LatestReviews'
 import Access from './pages/Access'
+import ReviewCount from './pages/ReviewCount'
+import ReviewCredit from './pages/ReviewCredit'
 
 function App() {
   const [selectedApp, setSelectedApp] = useState('StoreSEO'); // Default to StoreSEO
   const [refreshKey, setRefreshKey] = useState(0);
-  const [currentView, setCurrentView] = useState('analytics'); // 'analytics' or 'access'
+  const [currentView, setCurrentView] = useState('analytics'); // 'analytics', 'access', 'review-count', or 'review-credit'
 
   const handleAppSelect = (appName) => {
     setSelectedApp(appName);
@@ -49,6 +51,7 @@ function App() {
             onClick={() => setCurrentView('access')}
             style={{
               padding: '10px 20px',
+              marginRight: '10px',
               border: 'none',
               borderRadius: '5px',
               backgroundColor: currentView === 'access' ? '#007bff' : '#f8f9fa',
@@ -57,6 +60,35 @@ function App() {
             }}
           >
             Access Reviews
+          </button>
+          <button
+            className={`nav-tab ${currentView === 'review-count' ? 'active' : ''}`}
+            onClick={() => setCurrentView('review-count')}
+            style={{
+              padding: '10px 20px',
+              marginRight: '10px',
+              border: 'none',
+              borderRadius: '5px',
+              backgroundColor: currentView === 'review-count' ? '#28a745' : '#f8f9fa',
+              color: currentView === 'review-count' ? 'white' : '#333',
+              cursor: 'pointer'
+            }}
+          >
+            Review Count
+          </button>
+          <button
+            className={`nav-tab ${currentView === 'review-credit' ? 'active' : ''}`}
+            onClick={() => setCurrentView('review-credit')}
+            style={{
+              padding: '10px 20px',
+              border: 'none',
+              borderRadius: '5px',
+              backgroundColor: currentView === 'review-credit' ? '#17a2b8' : '#f8f9fa',
+              color: currentView === 'review-credit' ? 'white' : '#333',
+              cursor: 'pointer'
+            }}
+          >
+            Review Credit
           </button>
         </div>
       </header>
@@ -83,6 +115,12 @@ function App() {
               refreshKey={refreshKey}
             />
           </>
+        ) : currentView === 'access' ? (
+          <Access />
+        ) : currentView === 'review-count' ? (
+          <ReviewCount />
+        ) : currentView === 'review-credit' ? (
+          <ReviewCredit />
         ) : (
           <Access />
         )}
