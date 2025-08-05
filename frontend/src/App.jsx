@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 import AppSelector from './components/AppSelector'
 import SummaryStats from './components/SummaryStats'
@@ -12,6 +12,17 @@ function App() {
   const [selectedApp, setSelectedApp] = useState(''); // No default selection
   const [refreshKey, setRefreshKey] = useState(0);
   const [currentView, setCurrentView] = useState('analytics'); // 'analytics', 'access', 'review-count', or 'review-credit'
+
+  // Update document title based on current view
+  useEffect(() => {
+    const titles = {
+      'analytics': 'Analytics Dashboard - Shopify App Review Analytics',
+      'access': 'Access Reviews - Shopify App Review Analytics',
+      'review-count': 'Review Count - Shopify App Review Analytics',
+      'review-credit': 'Review Credit - Shopify App Review Analytics'
+    };
+    document.title = titles[currentView] || 'Shopify App Review Analytics';
+  }, [currentView]);
 
   const handleAppSelect = (appName) => {
     setSelectedApp(appName);

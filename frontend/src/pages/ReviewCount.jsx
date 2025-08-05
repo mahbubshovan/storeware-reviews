@@ -76,6 +76,30 @@ const ReviewCount = () => {
     }
   };
 
+  // Helper function to format app names consistently
+  const formatAppName = (appName) => {
+    if (!appName) return '';
+
+    const nameMap = {
+      'BetterDocs FAQ': 'BetterDocs FAQ',
+      'StoreFAQ': 'StoreFAQ',
+      'StoreSEO': 'StoreSEO',
+      'EasyFlow': 'EasyFlow',
+      'TrustSync': 'TrustSync'
+    };
+
+    // Return mapped name or apply consistent formatting
+    if (nameMap[appName]) {
+      return nameMap[appName];
+    }
+
+    // For any other app names, apply consistent formatting
+    return appName
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
   return (
     <div className="review-count-page" style={{
       minHeight: '100vh',
@@ -245,7 +269,7 @@ const ReviewCount = () => {
                     color: 'white',
                     textShadow: '0 2px 4px rgba(0,0,0,0.3)'
                   }}>
-                    {selectedApp}
+                    {formatAppName(selectedApp)}
                   </div>
                   <div style={{
                     width: '40px',
@@ -335,7 +359,7 @@ const ReviewCount = () => {
                       alignItems: 'center',
                       justifyContent: 'space-between'
                     }}>
-                      <span>{app}</span>
+                      <span>{formatAppName(app)}</span>
                       {isSelected && (
                         <span style={{ fontSize: '1.2rem' }}>✓</span>
                       )}
@@ -377,7 +401,7 @@ const ReviewCount = () => {
               Support Agent Statistics
               {selectedApp && (
                 <span style={{ fontSize: '1rem', fontWeight: 'normal', color: '#666' }}>
-                  {' '}for {selectedApp} (Last 30 Days)
+                  {' '}for {formatAppName(selectedApp)} (Last 30 Days)
                 </span>
               )}
             </h3>
@@ -405,7 +429,7 @@ const ReviewCount = () => {
                   marginTop: '10px',
                   color: 'rgba(255,255,255,0.8)'
                 }}>
-                  Analyzing performance data for {selectedApp}
+                  Analyzing performance data for {formatAppName(selectedApp)}
                 </div>
               </div>
             )}
@@ -447,7 +471,7 @@ const ReviewCount = () => {
                   maxWidth: '400px',
                   margin: '0 auto'
                 }}>
-                  No review data found for <strong>{selectedApp}</strong> in the last 30 days.
+                  No review data found for <strong>{formatAppName(selectedApp)}</strong> in the last 30 days.
                   Try selecting a different app or check back later.
                 </div>
               </div>
@@ -720,7 +744,7 @@ const ReviewCount = () => {
                     color: '#666',
                     margin: '0'
                   }}>
-                    Review distribution by country for {selectedApp} (Last 30 Days)
+                    Review distribution by country for {formatAppName(selectedApp)} (Last 30 Days)
                   </p>
                 </div>
 
@@ -792,7 +816,7 @@ const ReviewCount = () => {
                       maxWidth: '400px',
                       margin: '0 auto'
                     }}>
-                      No country-specific review data found for <strong>{selectedApp}</strong> in the last 30 days.
+                      No country-specific review data found for <strong>{formatAppName(selectedApp)}</strong> in the last 30 days.
                     </div>
                   </div>
                 )}
