@@ -9,12 +9,14 @@ import ReviewCount from './pages/ReviewCount'
 import ReviewCredit from './pages/ReviewCredit'
 
 function App() {
-  const [selectedApp, setSelectedApp] = useState('StoreSEO'); // Default to StoreSEO
+  const [selectedApp, setSelectedApp] = useState(''); // No default selection
   const [refreshKey, setRefreshKey] = useState(0);
   const [currentView, setCurrentView] = useState('analytics'); // 'analytics', 'access', 'review-count', or 'review-credit'
 
   const handleAppSelect = (appName) => {
     setSelectedApp(appName);
+    // Force refresh when switching apps to clear any cached data
+    setRefreshKey(prev => prev + 1);
   };
 
   const handleScrapeComplete = (appName, scrapedCount) => {

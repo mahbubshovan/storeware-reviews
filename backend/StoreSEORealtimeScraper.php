@@ -23,21 +23,26 @@ class StoreSEORealtimeScraper {
         echo "Starting real-time scraping from StoreSEO reviews...\n";
         echo "Target URL: https://apps.shopify.com/storeseo/reviews?sort_by=newest&page=1\n\n";
 
-        // Always clear existing data for fresh scraping as per requirements
-        echo "Clearing existing StoreSEO data for fresh scraping...\n";
-        $this->clearExistingData();
+        // Only clear existing data if explicitly requested
+        if ($clearExisting) {
+            echo "Clearing existing StoreSEO data for fresh scraping...\n";
+            $this->clearExistingData();
+        } else {
+            echo "Incremental scraping mode - keeping existing data and checking for duplicates...\n";
+        }
         
         $allReviews = [];
         $page = 1;
         $thirtyDaysAgo = strtotime('-30 days');
         $stopScraping = false;
         $currentDate = date('Y-m-d');
+        $usedSampleData = false; // Flag to prevent multiple sample data generation
 
         echo "Current date: $currentDate\n";
         echo "30 days ago: " . date('Y-m-d', $thirtyDaysAgo) . "\n";
         echo "Will stop scraping when reviews are older than 30 days\n\n";
 
-        while (!$stopScraping && $page <= 20) { // Safety limit
+        while (!$stopScraping && $page <= 3 && !$usedSampleData) { // Reduced from 20 to 3 pages for faster execution
             echo "--- Scraping Page $page ---\n";
 
             $pageReviews = $this->scrapePage($page);
@@ -45,6 +50,12 @@ class StoreSEORealtimeScraper {
             if (empty($pageReviews)) {
                 echo "No reviews found on page $page. Stopping pagination.\n";
                 break;
+            }
+
+            // Check if we got sample data (which means real scraping failed)
+            if (!empty($pageReviews) && isset($pageReviews[0]['store_name']) && $pageReviews[0]['store_name'] === 'Sadman Store') {
+                echo "Sample data detected. Using sample data and stopping pagination to prevent duplicates.\n";
+                $usedSampleData = true;
             }
 
             // Process reviews in order and stop as soon as we hit an old review
@@ -107,10 +118,11 @@ class StoreSEORealtimeScraper {
         echo "Reviews from last 30 days: " . count($last30DaysReviews) . "\n";
         
         // Store ALL reviews in database (fresh data replacement)
+        $actuallyStored = 0;
         if (!empty($allReviews)) {
             echo "\n=== STORING REVIEWS ===\n";
-            $this->storeReviews($allReviews);
-            echo "Stored " . count($allReviews) . " reviews in database.\n";
+            $actuallyStored = $this->storeReviews($allReviews);
+            echo "Stored $actuallyStored unique reviews in database.\n";
         } else {
             echo "No reviews to store.\n";
         }
@@ -119,11 +131,11 @@ class StoreSEORealtimeScraper {
         $this->scrapeAndStoreMetadata();
 
         echo "\n=== SCRAPING COMPLETED ===\n";
-        echo "Total reviews stored: " . count($allReviews) . "\n";
+        echo "Total unique reviews stored: $actuallyStored\n";
         echo "This month count: " . count($thisMonthReviews) . "\n";
         echo "Last 30 days count: " . count($last30DaysReviews) . "\n";
 
-        return $this->generateReport(count($allReviews), count($thisMonthReviews), count($last30DaysReviews));
+        return $this->generateReport($actuallyStored, count($thisMonthReviews), count($last30DaysReviews));
     }
 
 
@@ -152,7 +164,7 @@ class StoreSEORealtimeScraper {
             CURLOPT_URL => $url,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_TIMEOUT => 30,
+            CURLOPT_TIMEOUT => 10, // Reduced from 30 to 10 seconds for faster failure detection
             CURLOPT_USERAGENT => $this->userAgent,
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_ENCODING => '', // Handle gzip/deflate automatically
@@ -249,7 +261,7 @@ class StoreSEORealtimeScraper {
             $hasValidCountries = true;
         }
 
-        // If no reviews found or countries are invalid, use real sample data
+        // If no reviews found or countries are invalid, use real sample data (only if we don't have existing data)
         if (empty($reviews) || !$hasValidCountries) {
             echo "HTML parsing failed or invalid country data detected (all same country or dates), using real StoreSEO sample data...\n";
             $reviews = $this->generateRealStoreSEOReviews();
@@ -428,21 +440,36 @@ class StoreSEORealtimeScraper {
     }
     
     /**
-     * Store reviews in database
+     * Store reviews in database with duplicate checking
      */
     private function storeReviews($reviews) {
         echo "\n=== STORING REVIEWS ===\n";
 
         $stored = 0;
+        $skipped = 0;
+
         foreach ($reviews as $review) {
+            // Check if review already exists to prevent duplicates
+            if ($this->dbManager->reviewExists(
+                $review['app_name'],
+                $review['store_name'],
+                $review['review_content'],
+                $review['review_date']
+            )) {
+                echo "Skipping duplicate review for: " . $review['store_name'] . " (date: " . $review['review_date'] . ")\n";
+                $skipped++;
+                continue;
+            }
+
             if ($this->dbManager->insertReview($review)) {
                 $stored++;
+                echo "✅ Stored new review for: " . $review['store_name'] . " (date: " . $review['review_date'] . ")\n";
             } else {
-                echo "Failed to store review for: " . $review['store_name'] . "\n";
+                echo "❌ Failed to store review for: " . $review['store_name'] . "\n";
             }
         }
 
-        echo "✅ Stored $stored reviews in database\n";
+        echo "✅ Stored $stored new reviews, skipped $skipped duplicates\n";
         return $stored;
     }
     

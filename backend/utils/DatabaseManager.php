@@ -52,10 +52,20 @@ class DatabaseManager {
         $stmt->bindParam(":review_content", $review_content);
         $stmt->bindParam(":review_date", $review_date);
 
-        if($stmt->execute()) {
-            return true;
+        try {
+            if($stmt->execute()) {
+                return true;
+            }
+            return false;
+        } catch (PDOException $e) {
+            // Handle duplicate key error gracefully
+            if ($e->getCode() == 23000) { // Integrity constraint violation
+                // This is a duplicate, which is expected behavior
+                return false; // Don't treat as error, just skip
+            }
+            // Re-throw other errors
+            throw $e;
         }
-        return false;
     }
 
     /**

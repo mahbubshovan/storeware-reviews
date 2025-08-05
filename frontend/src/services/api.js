@@ -13,26 +13,26 @@ const api = axios.create({
 // API endpoints
 export const reviewsAPI = {
   getThisMonthReviews: (appName = null) => {
-    const params = appName ? { app_name: appName } : {};
+    const params = appName ? { app_name: appName, _t: Date.now() } : { _t: Date.now() };
     return api.get('/this-month-reviews.php', { params });
   },
   getLast30DaysReviews: (appName = null) => {
-    const params = appName ? { app_name: appName } : {};
+    const params = appName ? { app_name: appName, _t: Date.now() } : { _t: Date.now() };
     return api.get('/last-30-days-reviews.php', { params });
   },
   getAverageRating: (appName = null) => {
-    const params = appName ? { app_name: appName } : {};
+    const params = appName ? { app_name: appName, _t: Date.now() } : { _t: Date.now() };
     return api.get('/average-rating.php', { params });
   },
   getReviewDistribution: (appName = null) => {
-    const params = appName ? { app_name: appName } : {};
+    const params = appName ? { app_name: appName, _t: Date.now() } : { _t: Date.now() };
     return api.get('/review-distribution.php', { params });
   },
   getLatestReviews: (appName = null) => {
-    const params = appName ? { app_name: appName } : {};
+    const params = appName ? { app_name: appName, _t: Date.now() } : { _t: Date.now() };
     return api.get('/latest-reviews.php', { params });
   },
-  getAvailableApps: () => api.get('/available-apps.php'),
+  getAvailableApps: () => api.get('/available-apps.php', { params: { _t: Date.now() } }),
   scrapeApp: (appName) => api.post('/scrape-app.php', { app_name: appName }, { timeout: 60000 }),
 };
 
