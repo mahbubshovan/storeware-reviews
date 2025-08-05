@@ -4,18 +4,22 @@ const ReviewCount = () => {
   const [apps, setApps] = useState([]);
   const [selectedApp, setSelectedApp] = useState('');
   const [agentStats, setAgentStats] = useState([]);
+  const [countryStats, setCountryStats] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [countryLoading, setCountryLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [countryError, setCountryError] = useState(null);
 
   // Fetch available apps on component mount
   useEffect(() => {
     fetchApps();
   }, []);
 
-  // Fetch agent stats when selected app changes
+  // Fetch agent stats and country stats when selected app changes
   useEffect(() => {
     if (selectedApp) {
       fetchAgentStats(selectedApp);
+      fetchCountryStats(selectedApp);
     }
   }, [selectedApp]);
 
@@ -48,6 +52,27 @@ const ReviewCount = () => {
       console.error('Error fetching agent stats:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCountryStats = async (appName) => {
+    setCountryLoading(true);
+    setCountryError(null);
+    try {
+      const response = await fetch(`http://localhost:8000/api/country-stats.php?app_name=${encodeURIComponent(appName)}`);
+      if (!response.ok) throw new Error('Failed to fetch country stats');
+      const data = await response.json();
+      if (data.success) {
+        setCountryStats(data.country_stats || []);
+      } else {
+        throw new Error(data.message || 'Failed to fetch country stats');
+      }
+    } catch (err) {
+      setCountryError('Failed to load country statistics');
+      console.error('Error fetching country stats:', err);
+      setCountryStats([]);
+    } finally {
+      setCountryLoading(false);
     }
   };
 
@@ -658,6 +683,363 @@ const ReviewCount = () => {
                   })}
               </div>
               </>
+            )}
+
+            {/* Country-wise Review Count Section */}
+            {selectedApp && (
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.95)',
+                backdropFilter: 'blur(10px)',
+                borderRadius: '20px',
+                padding: '30px',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+                border: '1px solid rgba(255,255,255,0.2)',
+                marginTop: '30px'
+              }}>
+                {/* Header */}
+                <div style={{
+                  textAlign: 'center',
+                  marginBottom: '30px'
+                }}>
+                  <div style={{
+                    fontSize: '2.5rem',
+                    marginBottom: '10px'
+                  }}>
+                    🌍
+                  </div>
+                  <h3 style={{
+                    fontSize: '1.8rem',
+                    fontWeight: 'bold',
+                    color: '#333',
+                    marginBottom: '8px'
+                  }}>
+                    Country-wise Review Count
+                  </h3>
+                  <p style={{
+                    fontSize: '1rem',
+                    color: '#666',
+                    margin: '0'
+                  }}>
+                    Review distribution by country for {selectedApp} (Last 30 Days)
+                  </p>
+                </div>
+
+                {/* Loading State */}
+                {countryLoading && (
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '60px 40px',
+                    background: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
+                    borderRadius: '16px',
+                    color: 'white'
+                  }}>
+                    <div style={{
+                      fontSize: '4rem',
+                      marginBottom: '20px',
+                      animation: 'pulse 2s infinite'
+                    }}>
+                      🌍
+                    </div>
+                    <div style={{ fontSize: '1.3rem', fontWeight: '500' }}>
+                      Loading country statistics...
+                    </div>
+                    <div style={{
+                      fontSize: '1rem',
+                      marginTop: '10px',
+                      color: 'rgba(255,255,255,0.8)'
+                    }}>
+                      Analyzing global review distribution
+                    </div>
+                  </div>
+                )}
+
+                {/* Error State */}
+                {countryError && (
+                  <div style={{
+                    background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)',
+                    color: 'white',
+                    padding: '24px',
+                    borderRadius: '16px',
+                    textAlign: 'center',
+                    boxShadow: '0 8px 32px rgba(255,107,107,0.3)'
+                  }}>
+                    <div style={{ fontSize: '3rem', marginBottom: '15px' }}>⚠️</div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: '600', marginBottom: '8px' }}>
+                      Oops! Something went wrong
+                    </div>
+                    <div style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.9)' }}>
+                      {countryError}
+                    </div>
+                  </div>
+                )}
+
+                {/* Empty State */}
+                {!countryLoading && !countryError && countryStats.length === 0 && (
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '60px 40px',
+                    background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                    borderRadius: '16px',
+                    color: 'white'
+                  }}>
+                    <div style={{ fontSize: '4rem', marginBottom: '20px' }}>🌐</div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: '600', marginBottom: '10px' }}>
+                      No Country Data Available
+                    </div>
+                    <div style={{
+                      fontSize: '1.1rem',
+                      color: 'rgba(255,255,255,0.9)',
+                      maxWidth: '400px',
+                      margin: '0 auto'
+                    }}>
+                      No country-specific review data found for <strong>{selectedApp}</strong> in the last 30 days.
+                    </div>
+                  </div>
+                )}
+
+                {/* Country Statistics */}
+                {!countryLoading && !countryError && countryStats.length > 0 && (
+                  <>
+                    {/* Summary Statistics */}
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                      gap: '15px',
+                      marginBottom: '30px'
+                    }}>
+                      <div style={{
+                        background: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
+                        padding: '20px',
+                        borderRadius: '12px',
+                        color: 'white',
+                        textAlign: 'center'
+                      }}>
+                        <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>
+                          {countryStats.length}
+                        </div>
+                        <div style={{ fontSize: '0.9rem', opacity: 0.9 }}>
+                          Countries
+                        </div>
+                      </div>
+
+                      <div style={{
+                        background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                        padding: '20px',
+                        borderRadius: '12px',
+                        color: 'white',
+                        textAlign: 'center'
+                      }}>
+                        <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>
+                          {countryStats.reduce((sum, stat) => sum + stat.review_count, 0)}
+                        </div>
+                        <div style={{ fontSize: '0.9rem', opacity: 0.9 }}>
+                          Total Reviews
+                        </div>
+                      </div>
+
+                      <div style={{
+                        background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                        padding: '20px',
+                        borderRadius: '12px',
+                        color: 'white',
+                        textAlign: 'center'
+                      }}>
+                        <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>
+                          {countryStats.length > 0 ? Math.round(countryStats.reduce((sum, stat) => sum + stat.review_count, 0) / countryStats.length) : 0}
+                        </div>
+                        <div style={{ fontSize: '0.9rem', opacity: 0.9 }}>
+                          Avg per Country
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="country-stats-grid" style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                      gap: '20px',
+                      marginTop: '20px'
+                    }}>
+                      {countryStats
+                        .sort((a, b) => b.review_count - a.review_count) // Sort by review count descending
+                        .map((stat, index) => {
+                          const isTopCountry = index === 0 && stat.review_count > 0;
+                          const isHighContributor = index < 3 && stat.review_count >= 3;
+
+                          const gradients = [
+                            'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
+                            'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                            'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                            'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                            'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                            'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'
+                          ];
+
+                          return (
+                            <div
+                              key={stat.country_name}
+                              style={{
+                                background: isTopCountry
+                                  ? 'linear-gradient(135deg, #28a745 0%, #20c997 100%)'
+                                  : isHighContributor
+                                  ? gradients[index % gradients.length]
+                                  : 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                                borderRadius: '16px',
+                                padding: '24px',
+                                color: 'white',
+                                position: 'relative',
+                                overflow: 'hidden',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s ease',
+                                boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+                                border: '1px solid rgba(255,255,255,0.2)'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'translateY(-5px)';
+                                e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.2)';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.1)';
+                              }}
+                            >
+                              {/* Background decoration */}
+                              <div style={{
+                                position: 'absolute',
+                                top: '-50%',
+                                right: '-50%',
+                                width: '200%',
+                                height: '200%',
+                                background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)',
+                                pointerEvents: 'none'
+                              }} />
+
+                              {/* Rank badge for top country */}
+                              {isTopCountry && (
+                                <div style={{
+                                  position: 'absolute',
+                                  top: '16px',
+                                  right: '16px',
+                                  background: 'rgba(255,215,0,0.9)',
+                                  color: '#333',
+                                  padding: '4px 8px',
+                                  borderRadius: '12px',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 'bold',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px'
+                                }}>
+                                  👑 #1
+                                </div>
+                              )}
+
+                              {isHighContributor && !isTopCountry && (
+                                <div style={{
+                                  position: 'absolute',
+                                  top: '16px',
+                                  right: '16px',
+                                  background: 'rgba(255,255,255,0.2)',
+                                  color: 'white',
+                                  padding: '4px 8px',
+                                  borderRadius: '12px',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 'bold'
+                                }}>
+                                  ⭐ Top {index + 1}
+                                </div>
+                              )}
+
+                              {/* Country flag/icon */}
+                              <div style={{
+                                width: '60px',
+                                height: '60px',
+                                borderRadius: '50%',
+                                background: 'rgba(255,255,255,0.2)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '24px',
+                                marginBottom: '16px',
+                                border: '2px solid rgba(255,255,255,0.3)'
+                              }}>
+                                🌍
+                              </div>
+
+                              {/* Country name */}
+                              <h4 style={{
+                                fontSize: '1.3rem',
+                                fontWeight: '600',
+                                margin: '0 0 8px 0',
+                                color: 'white',
+                                textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                              }}>
+                                {stat.country_name}
+                              </h4>
+
+                              {/* Review count and percentage */}
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                marginBottom: '12px'
+                              }}>
+                                <div style={{
+                                  fontSize: '2.5rem',
+                                  fontWeight: 'bold',
+                                  color: 'white',
+                                  textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                                }}>
+                                  {stat.review_count}
+                                </div>
+                                <div style={{
+                                  fontSize: '1rem',
+                                  color: 'rgba(255,255,255,0.9)',
+                                  fontWeight: '500'
+                                }}>
+                                  reviews<br/>
+                                  <span style={{ fontSize: '0.9rem' }}>({stat.percentage}%)</span>
+                                </div>
+                              </div>
+
+                              {/* Market presence indicator */}
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                fontSize: '0.9rem',
+                                color: 'rgba(255,255,255,0.8)'
+                              }}>
+                                <span>📊</span>
+                                <span>
+                                  {stat.percentage >= 20 ? 'Major Market' :
+                                   stat.percentage >= 10 ? 'Significant Market' :
+                                   stat.percentage >= 5 ? 'Growing Market' : 'Emerging Market'}
+                                </span>
+                              </div>
+
+                              {/* Progress bar */}
+                              <div style={{
+                                marginTop: '16px',
+                                height: '4px',
+                                background: 'rgba(255,255,255,0.2)',
+                                borderRadius: '2px',
+                                overflow: 'hidden'
+                              }}>
+                                <div style={{
+                                  height: '100%',
+                                  background: 'rgba(255,255,255,0.8)',
+                                  borderRadius: '2px',
+                                  width: `${Math.min((stat.review_count / Math.max(...countryStats.map(s => s.review_count))) * 100, 100)}%`,
+                                  transition: 'width 0.3s ease'
+                                }} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </>
+                )}
+              </div>
             )}
           </div>
         </div>
