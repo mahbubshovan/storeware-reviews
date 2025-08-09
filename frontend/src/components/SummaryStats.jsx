@@ -26,6 +26,12 @@ const SummaryStats = ({ selectedApp, refreshKey }) => {
           reviewsAPI.getAverageRating(selectedApp)
         ]);
 
+        console.log('API Responses for', selectedApp, ':', {
+          thisMonth: thisMonthRes.data,
+          last30Days: last30DaysRes.data,
+          avgRating: avgRatingRes.data
+        });
+
         setStats({
           thisMonth: thisMonthRes.data.count,
           last30Days: last30DaysRes.data.count,

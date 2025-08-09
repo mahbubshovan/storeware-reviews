@@ -90,18 +90,22 @@ class DatabaseManager {
     }
 
     /**
-     * Get reviews count for current month
+     * Get reviews count for current month (from 1st of current month to today)
      */
     public function getThisMonthReviews($app_name = null) {
+        // Get first day of current month
+        $firstOfMonth = date('Y-m-01');
+
         $query = "SELECT COUNT(*) as count FROM " . $this->table_name . "
-                  WHERE MONTH(review_date) = MONTH(CURDATE())
-                  AND YEAR(review_date) = YEAR(CURDATE())";
+                  WHERE review_date >= :first_of_month
+                  AND review_date <= CURDATE()";
 
         if ($app_name) {
             $query .= " AND app_name = :app_name";
         }
 
         $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(":first_of_month", $firstOfMonth);
         if ($app_name) {
             $stmt->bindParam(":app_name", $app_name);
         }
@@ -123,6 +127,32 @@ class DatabaseManager {
         }
 
         $stmt = $this->conn->prepare($query);
+        if ($app_name) {
+            $stmt->bindParam(":app_name", $app_name);
+        }
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $result['count'];
+    }
+
+    /**
+     * Get reviews count for last month (before current month)
+     * Based on today being August 9th, "last month" means July 9th and earlier
+     */
+    public function getLastMonthReviews($app_name = null) {
+        // Calculate the cutoff date (30 days ago from today)
+        $cutoffDate = date('Y-m-d', strtotime('-30 days'));
+
+        $query = "SELECT COUNT(*) as count FROM " . $this->table_name . "
+                  WHERE review_date <= :cutoff_date";
+
+        if ($app_name) {
+            $query .= " AND app_name = :app_name";
+        }
+
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(":cutoff_date", $cutoffDate);
         if ($app_name) {
             $stmt->bindParam(":app_name", $app_name);
         }

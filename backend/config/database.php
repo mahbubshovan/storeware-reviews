@@ -4,11 +4,19 @@
  */
 
 class Database {
-    private $host = 'localhost';
-    private $db_name = 'shopify_reviews';
-    private $username = 'root';
-    private $password = '';
+    private $host;
+    private $db_name;
+    private $username;
+    private $password;
     private $conn;
+
+    public function __construct() {
+        // Load environment variables or use defaults
+        $this->host = $_ENV['DB_HOST'] ?? getenv('DB_HOST') ?: 'localhost';
+        $this->db_name = $_ENV['DB_NAME'] ?? getenv('DB_NAME') ?: 'shopify_reviews';
+        $this->username = $_ENV['DB_USER'] ?? getenv('DB_USER') ?: 'root';
+        $this->password = $_ENV['DB_PASS'] ?? getenv('DB_PASS') ?: '';
+    }
 
     public function getConnection() {
         $this->conn = null;

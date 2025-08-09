@@ -34,22 +34,73 @@ try {
     
     $appName = $input['app_name'];
     
-    // Initialize scraper
-    $scraper = new ShopifyScraper();
-    $availableApps = $scraper->getAvailableApps();
-    
-    if (!in_array($appName, $availableApps)) {
-        http_response_code(400);
-        echo json_encode([
-            'success' => false,
-            'error' => 'Invalid app name',
-            'available_apps' => $availableApps
-        ]);
-        exit;
+    // Handle different apps with specialized scrapers
+    $result = null;
+
+    switch ($appName) {
+        case 'StoreFAQ':
+            require_once __DIR__ . '/../scraper/StoreFAQUnified.php';
+            $scraper = new StoreFAQUnified();
+            $result = $scraper->scrapeStoreFAQ();
+            $scrapedCount = $result['total_scraped'] ?? 0;
+            break;
+
+
+
+        case 'StoreSEO':
+            require_once __DIR__ . '/../scraper/StoreSEORealtimeScraper.php';
+            $scraper = new StoreSEORealtimeScraper();
+            $result = $scraper->scrapeStoreSEO();
+            $scrapedCount = $result['total_scraped'] ?? 0;
+            break;
+
+        case 'Vidify':
+            require_once __DIR__ . '/../VidifyDynamicScraper.php';
+            $scraper = new VidifyDynamicScraper();
+            $result = $scraper->scrapeRealtimeReviews(true);
+            $scrapedCount = $result['total_stored'] ?? 0;
+            break;
+
+        case 'TrustSync':
+            require_once __DIR__ . '/../TrustSyncRealtimeScraper.php';
+            $scraper = new TrustSyncRealtimeScraper();
+            $result = $scraper->scrapeRealtimeReviews(true);
+            $scrapedCount = $result['total_stored'] ?? 0;
+            break;
+
+        case 'EasyFlow':
+            require_once __DIR__ . '/../EasyFlowRealtimeScraper.php';
+            $scraper = new EasyFlowRealtimeScraper();
+            $result = $scraper->scrapeRealtimeReviews();
+            $scrapedCount = $result['total_stored'] ?? 0;
+            break;
+
+        case 'BetterDocs FAQ':
+            require_once __DIR__ . '/../BetterDocsFAQRealtimeScraper.php';
+            $scraper = new BetterDocsFAQRealtimeScraper();
+            $result = $scraper->scrapeRealtimeReviews();
+            $scrapedCount = $result['total_stored'] ?? 0;
+            break;
+
+        default:
+            // Use the general Shopify scraper for other apps
+            $scraper = new ShopifyScraper();
+            $availableApps = $scraper->getAvailableApps();
+
+            if (!in_array($appName, $availableApps)) {
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'Invalid app name',
+                    'available_apps' => $availableApps
+                ]);
+                exit;
+            }
+
+            // Start scraping (this might take a while)
+            $scrapedCount = $scraper->scrapeAppByName($appName);
+            break;
     }
-    
-    // Start scraping (this might take a while)
-    $scrapedCount = $scraper->scrapeAppByName($appName);
 
     // Clear any unwanted output from scraping
     ob_clean();

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import './Access.css';
 
 const Access = () => {
@@ -8,6 +8,7 @@ const Access = () => {
   const [syncing, setSyncing] = useState(false);
   const [editingReview, setEditingReview] = useState(null);
   const [editValue, setEditValue] = useState('');
+  const [scrollPosition, setScrollPosition] = useState(0);
 
   useEffect(() => {
     fetchAccessReviews();
@@ -16,10 +17,17 @@ const Access = () => {
   const fetchAccessReviews = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8000/api/access-reviews.php');
+      const response = await fetch(`http://localhost:8000/api/access-reviews.php?date_range=30_days&_t=${Date.now()}`);
       const data = await response.json();
-      
+
       if (data.success) {
+        // If no reviews found, automatically trigger sync
+        if (!data.reviews || Object.keys(data.reviews).length === 0) {
+          console.log('No reviews found, triggering sync...');
+          await syncAccessReviews();
+          return; // syncAccessReviews will call fetchAccessReviews again
+        }
+
         setReviews(data.reviews || {});
         setStats(data.stats || null);
       } else {
@@ -53,6 +61,8 @@ const Access = () => {
   };
 
   const handleEditStart = (reviewId, currentValue) => {
+    // Save current scroll position before starting edit
+    setScrollPosition(window.pageYOffset || document.documentElement.scrollTop);
     setEditingReview(reviewId);
     setEditValue(currentValue || '');
   };
@@ -71,11 +81,56 @@ const Access = () => {
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
-        await fetchAccessReviews();
+        // Update local state immediately instead of refetching all data
+        const updatedReviews = { ...reviews };
+        const newEarnedBy = editValue.trim();
+
+        // Find and update the specific review in the local state
+        Object.keys(updatedReviews).forEach(appName => {
+          updatedReviews[appName] = updatedReviews[appName].map(review => {
+            if (review.id === reviewId) {
+              return { ...review, earned_by: newEarnedBy };
+            }
+            return review;
+          });
+        });
+
+        setReviews(updatedReviews);
+
+        // Update stats to reflect the change
+        if (stats) {
+          // Find the original review to check if it was previously assigned
+          let wasAssigned = false;
+          for (const appName of Object.keys(reviews)) {
+            const review = reviews[appName].find(r => r.id === reviewId);
+            if (review) {
+              wasAssigned = review.earned_by && review.earned_by.trim() !== '';
+              break;
+            }
+          }
+
+          const newStats = { ...stats };
+          if (!wasAssigned && newEarnedBy) {
+            // Was unassigned, now assigned
+            newStats.assigned_reviews += 1;
+            newStats.unassigned_reviews -= 1;
+          } else if (wasAssigned && !newEarnedBy) {
+            // Was assigned, now unassigned
+            newStats.assigned_reviews -= 1;
+            newStats.unassigned_reviews += 1;
+          }
+          setStats(newStats);
+        }
+
         setEditingReview(null);
         setEditValue('');
+
+        // Restore scroll position after a brief delay to ensure DOM updates
+        setTimeout(() => {
+          window.scrollTo(0, scrollPosition);
+        }, 50);
       } else {
         console.error('Failed to update earned_by:', data.message);
       }
@@ -87,6 +142,11 @@ const Access = () => {
   const handleEditCancel = () => {
     setEditingReview(null);
     setEditValue('');
+
+    // Restore scroll position when canceling edit
+    setTimeout(() => {
+      window.scrollTo(0, scrollPosition);
+    }, 50);
   };
 
   const formatDate = (dateString) => {
@@ -209,7 +269,7 @@ const Access = () => {
                                 onChange={(e) => setEditValue(e.target.value)}
                                 placeholder="Enter name..."
                                 className="earned-by-input"
-                                onKeyPress={(e) => {
+                                onKeyDown={(e) => {
                                   if (e.key === 'Enter') {
                                     handleEditSave(review.id);
                                   } else if (e.key === 'Escape') {

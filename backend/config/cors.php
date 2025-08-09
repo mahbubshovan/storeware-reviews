@@ -3,9 +3,18 @@
  * CORS Configuration
  */
 
-// Allow from any origin
-if (isset($_SERVER['HTTP_ORIGIN'])) {
-    header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
+// Production CORS settings
+$allowedOrigins = [
+    'https://app.yourdomain.com',
+    'https://yourdomain.com',
+    'http://localhost:5173', // Development
+    'http://localhost:3000'  // Alternative development
+];
+
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+
+if (in_array($origin, $allowedOrigins)) {
+    header("Access-Control-Allow-Origin: $origin");
     header('Access-Control-Allow-Credentials: true');
     header('Access-Control-Max-Age: 86400');    // cache for 1 day
 }

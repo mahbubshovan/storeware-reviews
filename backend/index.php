@@ -16,6 +16,10 @@ switch ($path) {
     case '/api/last-30-days-reviews':
         require_once __DIR__ . '/api/last-30-days-reviews.php';
         break;
+
+    case '/api/last-month-reviews':
+        require_once __DIR__ . '/api/last-month-reviews.php';
+        break;
         
     case '/api/average-rating':
         require_once __DIR__ . '/api/average-rating.php';

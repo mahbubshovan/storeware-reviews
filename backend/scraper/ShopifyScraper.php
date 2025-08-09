@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../utils/DatabaseManager.php';
-require_once __DIR__ . '/../StoreSEORealtimeScraper.php';
+require_once __DIR__ . '/StoreSEORealtimeScraper.php';
 require_once __DIR__ . '/../StoreFAQRealtimeScraper.php';
 require_once __DIR__ . '/../VidifyRealtimeScraper.php';
 require_once __DIR__ . '/../TrustSyncRealtimeScraper.php';

@@ -534,8 +534,8 @@ const ReviewCount = () => {
 
                 <div className="stats-grid" style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-                  gap: '20px',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                  gap: '12px',
                   marginTop: '20px'
                 }}>
                 {agentStats
@@ -548,155 +548,82 @@ const ReviewCount = () => {
                       <div
                         key={index}
                         style={{
-                          background: isTopPerformer
-                            ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-                            : isHighPerformer
-                            ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
-                            : 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-                          borderRadius: '16px',
-                          padding: '24px',
-                          color: 'white',
-                          position: 'relative',
-                          overflow: 'hidden',
-                          cursor: 'pointer',
-                          transition: 'all 0.3s ease',
-                          boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
-                          border: '1px solid rgba(255,255,255,0.2)'
+                          background: 'white',
+                          borderRadius: '8px',
+                          padding: '16px',
+                          color: '#333',
+                          border: isTopPerformer ? '2px solid #667eea' : '1px solid #e0e0e0',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                          transition: 'all 0.2s ease',
+                          position: 'relative'
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.transform = 'translateY(-5px)';
-                          e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.2)';
+                          e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
                         }}
                         onMouseLeave={(e) => {
-                          e.currentTarget.style.transform = 'translateY(0)';
-                          e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.1)';
+                          e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
                         }}
                       >
-                        {/* Background decoration */}
-                        <div style={{
-                          position: 'absolute',
-                          top: '-50%',
-                          right: '-50%',
-                          width: '200%',
-                          height: '200%',
-                          background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)',
-                          pointerEvents: 'none'
-                        }} />
-
-                        {/* Rank badge for top performers */}
+                        {/* Top performer badge */}
                         {isTopPerformer && (
                           <div style={{
                             position: 'absolute',
-                            top: '16px',
-                            right: '16px',
-                            background: 'rgba(255,215,0,0.9)',
-                            color: '#333',
-                            padding: '4px 8px',
-                            borderRadius: '12px',
-                            fontSize: '0.75rem',
-                            fontWeight: 'bold',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                          }}>
-                            👑 #1
-                          </div>
-                        )}
-
-                        {isHighPerformer && !isTopPerformer && (
-                          <div style={{
-                            position: 'absolute',
-                            top: '16px',
-                            right: '16px',
-                            background: 'rgba(255,255,255,0.2)',
+                            top: '8px',
+                            right: '8px',
+                            background: '#667eea',
                             color: 'white',
-                            padding: '4px 8px',
-                            borderRadius: '12px',
-                            fontSize: '0.75rem',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            fontSize: '0.7rem',
                             fontWeight: 'bold'
                           }}>
-                            ⭐ Top {index + 1}
+                            👑
                           </div>
                         )}
 
-                        {/* Agent avatar/icon */}
-                        <div style={{
-                          width: '60px',
-                          height: '60px',
-                          borderRadius: '50%',
-                          background: 'rgba(255,255,255,0.2)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '24px',
-                          marginBottom: '16px',
-                          border: '2px solid rgba(255,255,255,0.3)'
-                        }}>
-                          👤
-                        </div>
-
                         {/* Agent name */}
-                        <h4 style={{
-                          fontSize: '1.3rem',
-                          fontWeight: '600',
+                        <div style={{
+                          fontSize: '1.1rem',
+                          fontWeight: '500',
                           margin: '0 0 8px 0',
-                          color: 'white',
-                          textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                          color: '#333'
                         }}>
                           {stat.agent_name}
-                        </h4>
+                        </div>
 
                         {/* Review count */}
                         <div style={{
                           display: 'flex',
                           alignItems: 'center',
                           gap: '8px',
-                          marginBottom: '12px'
+                          color: '#666'
                         }}>
                           <div style={{
-                            fontSize: '2.5rem',
+                            fontSize: '1.5rem',
                             fontWeight: 'bold',
-                            color: 'white',
-                            textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                            color: '#333'
                           }}>
                             {stat.review_count}
                           </div>
                           <div style={{
-                            fontSize: '1rem',
-                            color: 'rgba(255,255,255,0.9)',
-                            fontWeight: '500'
+                            fontSize: '0.9rem',
+                            color: '#666'
                           }}>
                             reviews
                           </div>
                         </div>
 
-                        {/* Performance indicator */}
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          fontSize: '0.9rem',
-                          color: 'rgba(255,255,255,0.8)'
-                        }}>
-                          <span>📊</span>
-                          <span>
-                            {stat.review_count >= 10 ? 'Excellent Performance' :
-                             stat.review_count >= 5 ? 'Good Performance' :
-                             stat.review_count >= 1 ? 'Active Contributor' : 'Getting Started'}
-                          </span>
-                        </div>
-
                         {/* Progress bar */}
                         <div style={{
-                          marginTop: '16px',
-                          height: '4px',
-                          background: 'rgba(255,255,255,0.2)',
+                          marginTop: '12px',
+                          height: '3px',
+                          background: '#f0f0f0',
                           borderRadius: '2px',
                           overflow: 'hidden'
                         }}>
                           <div style={{
                             height: '100%',
-                            background: 'rgba(255,255,255,0.8)',
+                            background: isTopPerformer ? '#667eea' : '#4facfe',
                             borderRadius: '2px',
                             width: `${Math.min((stat.review_count / Math.max(...agentStats.map(s => s.review_count))) * 100, 100)}%`,
                             transition: 'width 0.3s ease'

@@ -15,12 +15,30 @@ const AppSelector = ({ selectedApp, onAppSelect, onScrapeComplete }) => {
   const fetchAvailableApps = async () => {
     try {
       setLoading(true);
+      console.log('Fetching available apps...');
       const response = await reviewsAPI.getAvailableApps();
+      console.log('API Response:', response);
+      console.log('Apps data:', response.data);
       setApps(response.data.apps);
       setError(null);
     } catch (err) {
-      setError('Failed to fetch available apps');
-      console.error('Error fetching apps:', err);
+      console.error('Detailed error fetching apps:', {
+        message: err.message,
+        response: err.response,
+        request: err.request,
+        config: err.config
+      });
+
+      let errorMessage = 'Failed to fetch available apps';
+      if (err.response) {
+        errorMessage += ` (Server error: ${err.response.status})`;
+      } else if (err.request) {
+        errorMessage += ' (No response from server)';
+      } else {
+        errorMessage += ` (${err.message})`;
+      }
+
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

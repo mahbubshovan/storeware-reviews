@@ -8,16 +8,13 @@ try {
     // Get app_name from query parameter
     $appName = isset($_GET['app_name']) ? $_GET['app_name'] : null;
 
-    $count = $dbManager->getThisMonthReviews($appName);
-
-    // Debug logging
-    error_log("THIS MONTH API - App: $appName, Count: $count, Time: " . date('Y-m-d H:i:s'));
+    $count = $dbManager->getLastMonthReviews($appName);
 
     echo json_encode([
         'success' => true,
         'count' => $count,
         'app_name' => $appName,
-        'debug_time' => date('Y-m-d H:i:s')
+        'description' => 'Reviews from last month (before current month)'
     ]);
 
 } catch (Exception $e) {

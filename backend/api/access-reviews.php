@@ -1,8 +1,5 @@
 <?php
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+require_once __DIR__ . '/../config/cors.php';
 
 // Handle preflight requests
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -15,10 +12,13 @@ try {
     $sync = new AccessReviewsSync();
     
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-        // Get all access reviews
-        $reviews = $sync->getAccessReviews();
-        $stats = $sync->getAccessReviewsStats();
-        
+        // Get date range parameter, default to 30_days
+        $dateRange = isset($_GET['date_range']) ? $_GET['date_range'] : '30_days';
+
+        // Get all access reviews with date filtering
+        $reviews = $sync->getAccessReviews($dateRange);
+        $stats = $sync->getAccessReviewsStats($dateRange);
+
         echo json_encode([
             'success' => true,
             'reviews' => $reviews,

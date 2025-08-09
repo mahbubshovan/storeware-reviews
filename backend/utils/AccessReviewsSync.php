@@ -108,23 +108,25 @@ class AccessReviewsSync {
     }
     
     /**
-     * Get all access reviews grouped by app name
+     * Get all access reviews grouped by app name with date filtering
      */
-    public function getAccessReviews() {
+    public function getAccessReviews($dateRange = '30_days') {
         try {
             $conn = $this->dbManager->getConnection();
-            
+
+            // Calculate date filter based on range
+            $dateFilter = $this->getDateFilter($dateRange);
+
             $stmt = $conn->prepare("
                 SELECT app_name, review_date, review_content, country_name, earned_by, id, original_review_id
                 FROM access_reviews
                 WHERE review_date >= ?
                 ORDER BY app_name, review_date DESC
             ");
-            
-            $thirtyDaysAgo = date('Y-m-d', strtotime('-30 days'));
-            $stmt->execute([$thirtyDaysAgo]);
+
+            $stmt->execute([$dateFilter]);
             $reviews = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
+
             // Group by app name
             $groupedReviews = [];
             foreach ($reviews as $review) {
@@ -134,12 +136,29 @@ class AccessReviewsSync {
                 }
                 $groupedReviews[$appName][] = $review;
             }
-            
+
             return $groupedReviews;
-            
+
         } catch (Exception $e) {
             echo "❌ Error getting access reviews: " . $e->getMessage() . "\n";
             return [];
+        }
+    }
+
+    /**
+     * Calculate date filter based on date range selection
+     */
+    private function getDateFilter($dateRange) {
+        switch ($dateRange) {
+            case '7_days':
+                return date('Y-m-d', strtotime('-7 days'));
+            case 'this_month':
+                return date('Y-m-01'); // First day of current month
+            case 'last_month':
+                return date('Y-m-01', strtotime('first day of last month'));
+            case '30_days':
+            default:
+                return date('Y-m-d', strtotime('-30 days'));
         }
     }
     
@@ -170,42 +189,43 @@ class AccessReviewsSync {
     }
     
     /**
-     * Get statistics for access reviews
+     * Get statistics for access reviews with date filtering
      */
-    public function getAccessReviewsStats() {
+    public function getAccessReviewsStats($dateRange = '30_days') {
         try {
             $conn = $this->dbManager->getConnection();
-            
-            $thirtyDaysAgo = date('Y-m-d', strtotime('-30 days'));
-            
-            // Total reviews in last 30 days
+
+            // Calculate date filter based on range
+            $dateFilter = $this->getDateFilter($dateRange);
+
+            // Total reviews in date range
             $stmt = $conn->prepare("SELECT COUNT(*) FROM access_reviews WHERE review_date >= ?");
-            $stmt->execute([$thirtyDaysAgo]);
+            $stmt->execute([$dateFilter]);
             $totalReviews = $stmt->fetchColumn();
-            
+
             // Reviews with earned_by assigned
             $stmt = $conn->prepare("SELECT COUNT(*) FROM access_reviews WHERE review_date >= ? AND earned_by IS NOT NULL AND earned_by != ''");
-            $stmt->execute([$thirtyDaysAgo]);
+            $stmt->execute([$dateFilter]);
             $assignedReviews = $stmt->fetchColumn();
-            
+
             // Reviews by app
             $stmt = $conn->prepare("
-                SELECT app_name, COUNT(*) as count 
-                FROM access_reviews 
-                WHERE review_date >= ? 
-                GROUP BY app_name 
+                SELECT app_name, COUNT(*) as count
+                FROM access_reviews
+                WHERE review_date >= ?
+                GROUP BY app_name
                 ORDER BY count DESC
             ");
-            $stmt->execute([$thirtyDaysAgo]);
+            $stmt->execute([$dateFilter]);
             $reviewsByApp = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
+
             return [
                 'total_reviews' => $totalReviews,
                 'assigned_reviews' => $assignedReviews,
                 'unassigned_reviews' => $totalReviews - $assignedReviews,
                 'reviews_by_app' => $reviewsByApp
             ];
-            
+
         } catch (Exception $e) {
             echo "❌ Error getting access reviews stats: " . $e->getMessage() . "\n";
             return null;
