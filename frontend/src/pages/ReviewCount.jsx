@@ -298,11 +298,12 @@ const ReviewCount = () => {
                 return (
                   <button
                     key={app}
+                    className="custom-selection-button"
                     onClick={() => setSelectedApp(app)}
                     style={{
                       width: '100%',
                       padding: '16px 20px',
-                      border: isSelected ? 'none' : '1px solid rgba(0,0,0,0.08)',
+                      border: 'none',
                       borderRadius: '12px',
                       background: isSelected
                         ? gradients[index % gradients.length]
@@ -318,25 +319,15 @@ const ReviewCount = () => {
                       boxShadow: isSelected
                         ? '0 8px 25px rgba(0,0,0,0.15)'
                         : '0 2px 8px rgba(0,0,0,0.08)',
-                      transform: isSelected ? 'translateY(-2px)' : 'translateY(0)'
+                      transform: isSelected ? 'translateY(-2px)' : 'translateY(0)',
+                      outline: 'none !important'
                     }}
-                    onMouseEnter={(e) => {
-                      if (!isSelected) {
-                        e.target.style.background = 'rgba(255,255,255,1)';
-                        e.target.style.color = '#1a202c';
-                        e.target.style.border = '1px solid rgba(0,0,0,0.15)';
-                        e.target.style.transform = 'translateY(-2px)';
-                        e.target.style.boxShadow = '0 6px 20px rgba(0,0,0,0.12)';
-                      }
+
+                    onFocus={(e) => {
+                      e.target.style.outline = 'none';
                     }}
-                    onMouseLeave={(e) => {
-                      if (!isSelected) {
-                        e.target.style.background = 'rgba(255,255,255,0.98)';
-                        e.target.style.color = '#1a202c';
-                        e.target.style.border = '1px solid rgba(0,0,0,0.08)';
-                        e.target.style.transform = 'translateY(0)';
-                        e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
-                      }
+                    onBlur={(e) => {
+                      e.target.style.outline = 'none';
                     }}
                   >
                     {/* Background decoration for selected item */}
@@ -557,12 +548,7 @@ const ReviewCount = () => {
                           transition: 'all 0.2s ease',
                           position: 'relative'
                         }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-                        }}
+
                       >
                         {/* Top performer badge */}
                         {isTopPerformer && (
@@ -844,14 +830,7 @@ const ReviewCount = () => {
                                 boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
                                 border: '1px solid rgba(255,255,255,0.2)'
                               }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.transform = 'translateY(-5px)';
-                                e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.2)';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.transform = 'translateY(0)';
-                                e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.1)';
-                              }}
+
                             >
                               {/* Background decoration */}
                               <div style={{

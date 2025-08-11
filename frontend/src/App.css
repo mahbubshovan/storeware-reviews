@@ -812,13 +812,119 @@
 
 /* Focus States for Accessibility */
 *:focus {
+  outline: none;
+}
+
+/* Specific focus styles for form elements */
+input:focus,
+textarea:focus,
+select:focus {
   outline: 2px solid var(--primary-500);
   outline-offset: 2px;
 }
 
+/* Subtle focus styles for buttons */
+button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.3);
+}
+
+/* Remove focus outline for custom styled buttons */
+button:focus:not(.btn):not(.app-dropdown) {
+  outline: none !important;
+  box-shadow: none;
+}
+
+/* Completely remove any focus styles for custom selection buttons */
+.custom-selection-button,
+.custom-selection-button:focus,
+.custom-selection-button:active,
+.custom-selection-button:hover:focus,
+.custom-selection-button:focus-visible,
+.custom-selection-button:focus-within {
+  outline: none !important;
+  outline-width: 0 !important;
+  outline-style: none !important;
+  outline-color: transparent !important;
+  outline-offset: 0 !important;
+  border-color: inherit !important;
+  box-shadow: inherit !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  -webkit-focus-ring-color: transparent !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Force remove any browser default focus styles */
+.custom-selection-button::-moz-focus-inner {
+  border: 0 !important;
+  outline: none !important;
+}
+
+.custom-selection-button::-webkit-focus-inner {
+  border: 0 !important;
+  outline: none !important;
+}
+
+/* Additional specific targeting for button elements */
+button.custom-selection-button,
+button.custom-selection-button:focus,
+button.custom-selection-button:active,
+button.custom-selection-button:focus-visible {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove any potential focus ring from parent containers */
+.reviewer-selection button,
+.reviewer-selection button:focus {
+  outline: none !important;
+  border-color: inherit !important;
+}
+
+/* Global button focus removal - aggressive approach */
 button:focus,
+button:focus-visible,
+button:active,
+input:focus,
+input:focus-visible,
 select:focus,
-input:focus {
-  outline: 2px solid var(--primary-500);
-  outline-offset: 2px;
+select:focus-visible {
+  outline: none !important;
+  outline-width: 0 !important;
+  outline-style: none !important;
+  outline-color: transparent !important;
+  box-shadow: none !important;
+  border-color: inherit !important;
+}
+
+/* Webkit specific focus removal */
+button:focus:not(:focus-visible),
+input:focus:not(:focus-visible),
+select:focus:not(:focus-visible) {
+  outline: none !important;
+}
+
+/* Force consistent button styling for reviewer buttons */
+.reviewer-list button,
+.reviewer-list button:focus,
+.reviewer-list button:active,
+.reviewer-list button:hover {
+  border: none !important;
+  outline: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  background-clip: padding-box !important;
+}
+
+/* Remove any potential input/select styling that might leak through */
+.custom-selection-button {
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  border: none !important;
+  outline: none !important;
+  background-clip: padding-box !important;
 }

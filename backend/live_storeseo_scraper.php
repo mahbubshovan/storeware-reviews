@@ -338,12 +338,11 @@ class LiveStoreSEOScraper {
             $stmt = $conn->prepare("DELETE FROM reviews WHERE app_name = 'StoreSEO'");
             $stmt->execute();
             $deleted1 = $stmt->rowCount();
-            
-            $stmt = $conn->prepare("DELETE FROM access_reviews WHERE app_name = 'StoreSEO'");
-            $stmt->execute();
-            $deleted2 = $stmt->rowCount();
-            
-            echo "Cleared $deleted1 reviews from main table, $deleted2 from access_reviews\n";
+
+            // DO NOT delete from access_reviews - preserve user assignments
+            // Let AccessReviewsSync handle the access_reviews table properly
+
+            echo "Cleared $deleted1 reviews from main table (preserved access_reviews assignments)\n";
             
         } catch (Exception $e) {
             echo "Error clearing data: " . $e->getMessage() . "\n";
@@ -392,25 +391,14 @@ class LiveStoreSEOScraper {
     }
     
     /**
-     * Sync reviews to access_reviews table
+     * Sync reviews to access_reviews table using proper AccessReviewsSync
      */
     private function syncToAccessReviews() {
         try {
-            $conn = $this->dbManager->getConnection();
-            
-            $stmt = $conn->prepare("
-                INSERT INTO access_reviews (app_name, review_date, review_content, country_name, original_review_id)
-                SELECT app_name, review_date, review_content, country_name, id
-                FROM reviews 
-                WHERE app_name = 'StoreSEO'
-                AND review_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-            ");
-            
-            $stmt->execute();
-            $synced = $stmt->rowCount();
-            
-            echo "Synced $synced reviews to access_reviews table\n";
-            
+            require_once __DIR__ . '/utils/AccessReviewsSync.php';
+            $sync = new AccessReviewsSync();
+            $sync->syncAccessReviews();
+
         } catch (Exception $e) {
             echo "Error syncing to access_reviews: " . $e->getMessage() . "\n";
         }

@@ -88,7 +88,10 @@ class VidifyDynamicScraper {
         echo "Total reviews found: " . count($allReviews) . "\n";
         echo "This month count: " . count($thisMonthReviews) . "\n";
         echo "Last 30 days count: " . count($last30DaysReviews) . "\n";
-        
+
+        // Sync to access_reviews table
+        $this->syncToAccessReviews();
+
         return $this->generateReport(count($last30DaysReviews), count($thisMonthReviews), count($last30DaysReviews));
     }
     
@@ -445,6 +448,20 @@ class VidifyDynamicScraper {
                 'max_date' => date('Y-m-d')
             ]
         ];
+    }
+
+    /**
+     * Sync reviews to access_reviews table using proper AccessReviewsSync
+     */
+    private function syncToAccessReviews() {
+        try {
+            require_once __DIR__ . '/utils/AccessReviewsSync.php';
+            $sync = new AccessReviewsSync();
+            $sync->syncAccessReviews();
+
+        } catch (Exception $e) {
+            echo "Error syncing to access_reviews: " . $e->getMessage() . "\n";
+        }
     }
 }
 ?>

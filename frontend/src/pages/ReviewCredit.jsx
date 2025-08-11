@@ -249,7 +249,10 @@ const ReviewCredit = () => {
                 return (
                   <button
                     key={reviewer}
+                    className="custom-selection-button"
                     onClick={() => setSelectedReviewer(reviewer)}
+                    tabIndex={-1}
+                    onFocus={(e) => e.target.blur()}
                     style={{
                       width: '100%',
                       padding: '16px 20px',
@@ -259,7 +262,6 @@ const ReviewCredit = () => {
                         ? gradients[index % gradients.length]
                         : 'rgba(255,255,255,0.98)',
                       color: isSelected ? 'white' : '#1a202c',
-                      border: isSelected ? 'none' : '1px solid rgba(0,0,0,0.08)',
                       cursor: 'pointer',
                       textAlign: 'left',
                       fontSize: '1rem',
@@ -270,25 +272,18 @@ const ReviewCredit = () => {
                       boxShadow: isSelected
                         ? '0 8px 25px rgba(0,0,0,0.15)'
                         : '0 2px 8px rgba(0,0,0,0.08)',
-                      transform: isSelected ? 'translateY(-2px)' : 'translateY(0)'
+                      transform: isSelected ? 'translateY(-2px)' : 'translateY(0)',
+                      outline: 'none',
+                      WebkitAppearance: 'none',
+                      MozAppearance: 'none',
+                      appearance: 'none'
                     }}
-                    onMouseEnter={(e) => {
-                      if (!isSelected) {
-                        e.target.style.background = 'rgba(255,255,255,1)';
-                        e.target.style.color = '#1a202c';
-                        e.target.style.border = '1px solid rgba(0,0,0,0.15)';
-                        e.target.style.transform = 'translateY(-2px)';
-                        e.target.style.boxShadow = '0 6px 20px rgba(0,0,0,0.12)';
-                      }
+
+                    onFocus={(e) => {
+                      e.target.style.outline = 'none';
                     }}
-                    onMouseLeave={(e) => {
-                      if (!isSelected) {
-                        e.target.style.background = 'rgba(255,255,255,0.98)';
-                        e.target.style.color = '#1a202c';
-                        e.target.style.border = '1px solid rgba(0,0,0,0.08)';
-                        e.target.style.transform = 'translateY(0)';
-                        e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
-                      }
+                    onBlur={(e) => {
+                      e.target.style.outline = 'none';
                     }}
                   >
                     {/* Background decoration for selected item */}

@@ -27,8 +27,11 @@ class AccessReviewsSync {
             
             // 1. Remove reviews older than 30 days from access_reviews
             $this->removeOldReviews($conn);
-            
-            // 2. Add new reviews from last 30 days
+
+            // 2. Remove reviews that no longer exist in the main reviews table
+            $this->removeOrphanedReviews($conn);
+
+            // 3. Add new reviews from last 30 days
             $this->addNewReviews($conn);
             
             // Commit transaction
@@ -57,7 +60,53 @@ class AccessReviewsSync {
         $deletedCount = $stmt->rowCount();
         echo "Removed $deletedCount old reviews (older than $thirtyDaysAgo)\n";
     }
-    
+
+    /**
+     * Remove reviews from access_reviews that no longer exist in the main reviews table
+     * This handles cases where reviews are removed from the original Shopify page
+     */
+    private function removeOrphanedReviews($conn) {
+        // Find access_reviews that don't have corresponding entries in the main reviews table
+        $stmt = $conn->prepare("
+            SELECT ar.id, ar.app_name, ar.earned_by, ar.review_date
+            FROM access_reviews ar
+            LEFT JOIN reviews r ON ar.original_review_id = r.id
+            WHERE r.id IS NULL
+        ");
+
+        $stmt->execute();
+        $orphanedReviews = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if (empty($orphanedReviews)) {
+            echo "No orphaned reviews to remove from access_reviews\n";
+            return;
+        }
+
+        // Log which assigned reviews are being removed
+        $assignedOrphans = array_filter($orphanedReviews, function($review) {
+            return !empty($review['earned_by']);
+        });
+
+        if (!empty($assignedOrphans)) {
+            echo "Removing " . count($assignedOrphans) . " assigned reviews that no longer exist on source pages:\n";
+            foreach ($assignedOrphans as $review) {
+                echo "  - {$review['app_name']} review from {$review['review_date']} (assigned to: {$review['earned_by']})\n";
+            }
+        }
+
+        // Remove orphaned reviews
+        $deleteStmt = $conn->prepare("
+            DELETE FROM access_reviews
+            WHERE id IN (" . str_repeat('?,', count($orphanedReviews) - 1) . "?)
+        ");
+
+        $orphanedIds = array_column($orphanedReviews, 'id');
+        $deleteStmt->execute($orphanedIds);
+
+        $deletedCount = $deleteStmt->rowCount();
+        echo "Removed $deletedCount orphaned reviews (no longer exist on source pages)\n";
+    }
+
     /**
      * Add new reviews from last 30 days to access_reviews table
      * Preserves existing earned_by values

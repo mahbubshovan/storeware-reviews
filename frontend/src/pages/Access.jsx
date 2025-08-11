@@ -5,14 +5,32 @@ const Access = () => {
   const [reviews, setReviews] = useState({});
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
+
+  // Password protection state
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+
   const [editingReview, setEditingReview] = useState(null);
   const [editValue, setEditValue] = useState('');
   const [scrollPosition, setScrollPosition] = useState(0);
 
   useEffect(() => {
-    fetchAccessReviews();
-  }, []);
+    if (isAuthenticated) {
+      fetchAccessReviews();
+    }
+  }, [isAuthenticated]);
+
+  const handlePasswordSubmit = (e) => {
+    e.preventDefault();
+    if (password === 'admin123') {
+      setIsAuthenticated(true);
+      setPasswordError('');
+    } else {
+      setPasswordError('Invalid password. Please try again.');
+      setPassword('');
+    }
+  };
 
   const fetchAccessReviews = async () => {
     try {
@@ -21,13 +39,6 @@ const Access = () => {
       const data = await response.json();
 
       if (data.success) {
-        // If no reviews found, automatically trigger sync
-        if (!data.reviews || Object.keys(data.reviews).length === 0) {
-          console.log('No reviews found, triggering sync...');
-          await syncAccessReviews();
-          return; // syncAccessReviews will call fetchAccessReviews again
-        }
-
         setReviews(data.reviews || {});
         setStats(data.stats || null);
       } else {
@@ -40,25 +51,7 @@ const Access = () => {
     }
   };
 
-  const syncAccessReviews = async () => {
-    try {
-      setSyncing(true);
-      const response = await fetch('http://localhost:8000/api/sync-access-reviews.php', {
-        method: 'POST'
-      });
-      const data = await response.json();
-      
-      if (data.success) {
-        await fetchAccessReviews();
-      } else {
-        console.error('Failed to sync access reviews:', data.message);
-      }
-    } catch (error) {
-      console.error('Error syncing access reviews:', error);
-    } finally {
-      setSyncing(false);
-    }
-  };
+
 
   const handleEditStart = (reviewId, currentValue) => {
     // Save current scroll position before starting edit
@@ -153,6 +146,20 @@ const Access = () => {
     return new Date(dateString).toLocaleDateString();
   };
 
+  const getAppColor = (index) => {
+    const colors = [
+      '#4f46e5', // Indigo
+      '#059669', // Emerald
+      '#dc2626', // Red
+      '#d97706', // Amber
+      '#7c3aed', // Violet
+      '#0891b2', // Cyan
+      '#be185d', // Pink
+      '#65a30d', // Lime
+    ];
+    return colors[index % colors.length];
+  };
+
   const truncateContent = (content, maxLength = 100) => {
     if (content.length <= maxLength) return content;
     return content.substring(0, maxLength) + '...';
@@ -179,6 +186,41 @@ const Access = () => {
     return countryNames[countryCode] || countryCode;
   };
 
+  // Show password form if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="access-container">
+        <div className="password-protection-container">
+          <div className="password-form-card">
+            <h2>Access Reviews</h2>
+            <p>This page is password protected. Please enter the password to continue.</p>
+
+            <form onSubmit={handlePasswordSubmit} className="password-form">
+              <div className="password-input-group">
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter password"
+                  className="password-input"
+                  autoFocus
+                />
+                <button type="submit" className="password-submit-btn">
+                  Access
+                </button>
+              </div>
+              {passwordError && (
+                <div className="password-error">
+                  {passwordError}
+                </div>
+              )}
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="loading-container">
@@ -196,16 +238,9 @@ const Access = () => {
           <div className="access-header-content">
             <h1>Access Reviews</h1>
             <p>
-              Manage and assign reviews from the last 30 days across all apps
+              Manage and assign reviews from the last 30 days across all apps. Data is automatically updated when apps are scraped.
             </p>
           </div>
-          <button
-            onClick={syncAccessReviews}
-            disabled={syncing}
-            className="sync-button"
-          >
-            {syncing ? 'Syncing...' : 'Sync Reviews'}
-          </button>
         </div>
 
         {/* Stats Cards */}
@@ -233,12 +268,43 @@ const Access = () => {
           </div>
         )}
 
+        {/* App-wise Review Counts */}
+        {stats && stats.reviews_by_app && stats.reviews_by_app.length > 0 && (
+          <div className="app-counts-section">
+            <h3 className="app-counts-title">Review Counts by App (Last 30 Days)</h3>
+            <div className="app-counts-grid">
+              {stats.reviews_by_app.map((app, index) => (
+                <div key={app.app_name} className="app-count-card">
+                  <div className="app-count-header">
+                    <h4 className="app-count-name">{app.app_name}</h4>
+                    <span className="app-count-badge">{app.count} reviews</span>
+                  </div>
+                  <div className="app-count-details">
+                    <div className="app-count-bar">
+                      <div
+                        className="app-count-fill"
+                        style={{
+                          width: `${(app.count / stats.total_reviews) * 100}%`,
+                          backgroundColor: getAppColor(index)
+                        }}
+                      ></div>
+                    </div>
+                    <div className="app-count-percentage">
+                      {((app.count / stats.total_reviews) * 100).toFixed(1)}% of total
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Reviews by App */}
         <div className="access-content">
           {Object.keys(reviews).length === 0 ? (
             <div className="app-section">
               <h3>No Reviews Found</h3>
-              <p>No reviews from the last 30 days. Try syncing to get the latest data.</p>
+              <p>No reviews from the last 30 days. Reviews will appear here automatically when apps are scraped.</p>
             </div>
           ) : (
             Object.entries(reviews).map(([appName, appReviews]) => (

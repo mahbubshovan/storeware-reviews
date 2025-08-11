@@ -31,14 +31,21 @@ CREATE TABLE access_reviews (
 
 ### Sync Process
 1. **Remove Old Reviews**: Deletes reviews older than 30 days from `access_reviews`
-2. **Add New Reviews**: Adds new reviews from last 30 days from main `reviews` table
-3. **Preserve Assignments**: Existing `earned_by` values are preserved during sync
+2. **Remove Orphaned Reviews**: Removes reviews that no longer exist on the original Shopify pages
+3. **Add New Reviews**: Adds new reviews from last 30 days from main `reviews` table
+4. **Preserve Assignments**: Existing `earned_by` values are preserved during sync
 
 ### Data Matching Rules
 - Match by `original_review_id` (foreign key to main reviews table)
 - If review exists: keep existing `earned_by` value
-- If review is new: add with `earned_by` = NULL
-- If review is old: remove from `access_reviews`
+- If review is new: add with `earned_by` = NULL (unassigned state)
+- If review is old (>30 days): remove from `access_reviews`
+- If review no longer exists on source page: remove from `access_reviews` (including assignments)
+
+### Assignment Behavior
+- **New Reviews**: Always start in unassigned state (`earned_by` = NULL)
+- **Assignment Persistence**: Manual assignments persist through sync operations
+- **Assignment Removal**: Only occurs when review is removed from source or ages out (>30 days)
 
 ## API Endpoints
 
@@ -91,7 +98,7 @@ Updates the `earned_by` field for a specific review.
 ```
 
 ### POST `/api/access-reviews.php`
-Manually triggers synchronization of access reviews.
+Triggers synchronization of access reviews. This endpoint is primarily used internally by the scraping system and is automatically called after each app scraping operation.
 
 **Response:**
 ```json
@@ -108,7 +115,7 @@ Manually triggers synchronization of access reviews.
 - **Reviews by App**: Grouped tables showing reviews for each app
 - **Inline Editing**: Click-to-edit functionality for "Earned By" field
 - **Real-time Updates**: Changes save immediately and update UI
-- **Manual Sync**: Button to trigger manual synchronization
+- **Automatic Sync**: Data is automatically updated when individual apps are scraped
 
 ### Navigation
 - Accessible via navigation menu: "Access Reviews"

@@ -81,7 +81,10 @@ class TrustSyncRealtimeScraper {
         echo "Total reviews stored: " . count($allReviews) . "\n";
         echo "This month count: " . count($thisMonthReviews) . "\n";
         echo "Last 30 days count: " . count($last30DaysReviews) . "\n";
-        
+
+        // Sync to access_reviews table
+        $this->syncToAccessReviews();
+
         return $this->generateReport(count($allReviews), count($thisMonthReviews), count($last30DaysReviews));
     }
 
@@ -612,6 +615,20 @@ class TrustSyncRealtimeScraper {
                 'new_reviews_count' => $totalReviews,
                 'date_range' => ['min_date' => null, 'max_date' => null]
             ];
+        }
+    }
+
+    /**
+     * Sync reviews to access_reviews table using proper AccessReviewsSync
+     */
+    private function syncToAccessReviews() {
+        try {
+            require_once __DIR__ . '/utils/AccessReviewsSync.php';
+            $sync = new AccessReviewsSync();
+            $sync->syncAccessReviews();
+
+        } catch (Exception $e) {
+            echo "Error syncing to access_reviews: " . $e->getMessage() . "\n";
         }
     }
 }
