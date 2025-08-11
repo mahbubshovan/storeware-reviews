@@ -1,0 +1,15 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "php -S 0.0.0.0:$PORT -t backend"
+healthcheckPath = "/api/available-apps.php"
+healthcheckTimeout = 300
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
+
+[environments.production.variables]
+DB_HOST = "${{MySQL.MYSQL_HOST}}"
+DB_NAME = "${{MySQL.MYSQL_DATABASE}}"
+DB_USER = "${{MySQL.MYSQL_USER}}"
+DB_PASS = "${{MySQL.MYSQL_PASSWORD}}"
