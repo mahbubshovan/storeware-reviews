@@ -5,11 +5,23 @@
 
 // Production CORS settings
 $allowedOrigins = [
-    'https://app.yourdomain.com',
-    'https://yourdomain.com',
     'http://localhost:5173', // Development
-    'http://localhost:3000'  // Alternative development
+    'http://localhost:3000',  // Alternative development
+    'https://shopify-reviews-frontend.vercel.app', // Vercel frontend
+    'https://shopify-reviews.vercel.app', // Alternative Vercel domain
+    'https://shopify-reviews-git-main.vercel.app', // Vercel git branch domain
 ];
+
+// Allow any Railway backend domain for development
+if (isset($_SERVER['HTTP_ORIGIN'])) {
+    $origin = $_SERVER['HTTP_ORIGIN'];
+    // Allow Railway domains
+    if (strpos($origin, '.railway.app') !== false ||
+        strpos($origin, '.up.railway.app') !== false ||
+        strpos($origin, 'localhost') !== false) {
+        $allowedOrigins[] = $origin;
+    }
+}
 
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 
