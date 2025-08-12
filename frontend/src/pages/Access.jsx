@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { reviewsAPI } from '../services/api';
 import './Access.css';
 
 const Access = () => {
@@ -35,14 +36,13 @@ const Access = () => {
   const fetchAccessReviews = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:8000/api/access-reviews.php?date_range=30_days&_t=${Date.now()}`);
-      const data = await response.json();
+      const response = await reviewsAPI.getAccessReviews();
 
-      if (data.success) {
-        setReviews(data.reviews || {});
-        setStats(data.stats || null);
+      if (response.data.success) {
+        setReviews(response.data.reviews || {});
+        setStats(response.data.stats || null);
       } else {
-        console.error('Failed to fetch access reviews:', data.message);
+        console.error('Failed to fetch access reviews:', response.data.message);
       }
     } catch (error) {
       console.error('Error fetching access reviews:', error);
@@ -62,18 +62,8 @@ const Access = () => {
 
   const handleEditSave = async (reviewId) => {
     try {
-      const response = await fetch('http://localhost:8000/api/update-earned-by.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          review_id: reviewId,
-          earned_by: editValue.trim()
-        })
-      });
-
-      const data = await response.json();
+      const response = await reviewsAPI.updateEarnedBy(reviewId, editValue.trim());
+      const data = response.data;
 
       if (data.success) {
         // Update local state immediately instead of refetching all data

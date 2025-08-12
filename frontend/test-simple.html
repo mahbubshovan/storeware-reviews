@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Test</title>
+</head>
+<body>
+    <h1>Simple Test Page</h1>
+    <p>This page should load if the server is working.</p>
+    
+    <div id="api-test">
+        <h2>API Test</h2>
+        <button onclick="testAPI()">Test API</button>
+        <div id="api-results"></div>
+    </div>
+
+    <script>
+        async function testAPI() {
+            const resultsDiv = document.getElementById('api-results');
+            resultsDiv.innerHTML = 'Testing...';
+            
+            try {
+                const response = await fetch('http://localhost:8000/api/available-apps.php');
+                const data = await response.json();
+                resultsDiv.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                resultsDiv.innerHTML = 'Error: ' + error.message;
+            }
+        }
+        
+        console.log('Simple test page loaded');
+    </script>
+</body>
+</html>

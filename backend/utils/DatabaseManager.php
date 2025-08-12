@@ -163,23 +163,12 @@ class DatabaseManager {
     }
 
     /**
-     * Get average rating
+     * Get average rating - PRIORITIZE ACTUAL SCRAPED REVIEWS
      */
     public function getAverageRating($app_name = null) {
-        if ($app_name) {
-            // Try to get data from metadata table first
-            $metaQuery = "SELECT overall_rating FROM app_metadata WHERE app_name = :app_name";
-            $stmt = $this->conn->prepare($metaQuery);
-            $stmt->bindParam(":app_name", $app_name);
-            $stmt->execute();
-            $metaResult = $stmt->fetch(PDO::FETCH_ASSOC);
+        // 🔴 ALWAYS USE ACTUAL SCRAPED REVIEW DATA, NOT METADATA
+        // This ensures average rating reflects the real scraped reviews
 
-            if ($metaResult) {
-                return floatval($metaResult['overall_rating']);
-            }
-        }
-
-        // Fallback to actual review data
         $query = "SELECT AVG(rating) as avg_rating FROM " . $this->table_name;
 
         if ($app_name) {
@@ -197,11 +186,12 @@ class DatabaseManager {
     }
 
     /**
-     * Get review distribution by rating
+     * Get review distribution by rating - USE COMPLETE DISTRIBUTION DATA
      */
     public function getReviewDistribution($app_name = null) {
         if ($app_name) {
-            // Try to get data from metadata table first
+            // 🎯 FIRST: Try to get COMPLETE rating distribution from metadata
+            // This contains the full rating breakdown from ALL reviews on Shopify
             $metaQuery = "SELECT
                             total_reviews,
                             five_star_total as five_star,
@@ -210,19 +200,23 @@ class DatabaseManager {
                             two_star_total as two_star,
                             one_star_total as one_star
                           FROM app_metadata
-                          WHERE app_name = :app_name";
+                          WHERE app_name = :app_name
+                          AND total_reviews > 0";
 
             $stmt = $this->conn->prepare($metaQuery);
             $stmt->bindParam(":app_name", $app_name);
             $stmt->execute();
             $metaResult = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            if ($metaResult) {
+            if ($metaResult && $metaResult['total_reviews'] > 0) {
+                // Using complete rating distribution from metadata
                 return $metaResult;
             }
         }
 
-        // Fallback to actual review data
+        // 🔄 FALLBACK: Use actual scraped review data (recent reviews only)
+        // Using recent scraped reviews only (limited data)
+
         $query = "SELECT
                     COUNT(*) as total_reviews,
                     SUM(CASE WHEN rating = 5 THEN 1 ELSE 0 END) as five_star,
@@ -242,6 +236,14 @@ class DatabaseManager {
         }
         $stmt->execute();
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        // Ensure all values are integers and not null
+        $result['total_reviews'] = intval($result['total_reviews'] ?? 0);
+        $result['five_star'] = intval($result['five_star'] ?? 0);
+        $result['four_star'] = intval($result['four_star'] ?? 0);
+        $result['three_star'] = intval($result['three_star'] ?? 0);
+        $result['two_star'] = intval($result['two_star'] ?? 0);
+        $result['one_star'] = intval($result['one_star'] ?? 0);
 
         return $result;
     }

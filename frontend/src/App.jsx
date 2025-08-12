@@ -13,6 +13,8 @@ function App() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [currentView, setCurrentView] = useState('analytics'); // 'analytics', 'access', 'review-count', or 'review-credit'
 
+  console.log('App rendering with:', { selectedApp, currentView, refreshKey });
+
   // Update document title based on current view
   useEffect(() => {
     const titles = {
@@ -119,14 +121,19 @@ function App() {
               selectedApp={selectedApp}
               refreshKey={refreshKey}
             />
-            <ReviewDistribution
-              selectedApp={selectedApp}
-              refreshKey={refreshKey}
-            />
-            <LatestReviews
-              selectedApp={selectedApp}
-              refreshKey={refreshKey}
-            />
+
+            {selectedApp && (
+              <>
+                <ReviewDistribution
+                  selectedApp={selectedApp}
+                  refreshKey={refreshKey}
+                />
+                <LatestReviews
+                  selectedApp={selectedApp}
+                  refreshKey={refreshKey}
+                />
+              </>
+            )}
           </>
         ) : currentView === 'access' ? (
           <Access />

@@ -7,14 +7,20 @@ const SummaryStats = ({ selectedApp, refreshKey }) => {
     last30Days: 0,
     averageRating: 0.0
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchStats = async () => {
-      // Don't fetch if no app is selected
+      // Don't fetch if no app is selected - reset to default values
       if (!selectedApp) {
+        setStats({
+          thisMonth: 0,
+          last30Days: 0,
+          averageRating: 0.0
+        });
         setLoading(false);
+        setError(null);
         return;
       }
 
@@ -49,7 +55,7 @@ const SummaryStats = ({ selectedApp, refreshKey }) => {
     fetchStats();
   }, [selectedApp, refreshKey]);
 
-  if (loading) {
+  if (loading && selectedApp) {
     return <div className="loading">Loading statistics...</div>;
   }
 

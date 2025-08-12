@@ -252,7 +252,6 @@ const ReviewCredit = () => {
                     className="custom-selection-button"
                     onClick={() => setSelectedReviewer(reviewer)}
                     tabIndex={-1}
-                    onFocus={(e) => e.target.blur()}
                     style={{
                       width: '100%',
                       padding: '16px 20px',

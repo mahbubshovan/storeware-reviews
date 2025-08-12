@@ -71,7 +71,15 @@ const AppSelector = ({ selectedApp, onAppSelect, onScrapeComplete }) => {
         // Clear success message after 5 seconds
         setTimeout(() => setSuccess(null), 5000);
       } else {
-        setError(`Scraping failed: ${response.data.error}`);
+        // For apps with no recent reviews, show a more user-friendly message
+        const errorMsg = response.data.message || response.data.error || 'Unknown error';
+        if (errorMsg.includes('No live reviews found')) {
+          setSuccess(`${appName} data loaded! (No new reviews in last 30 days)`);
+          onScrapeComplete(appName, 0);
+          setTimeout(() => setSuccess(null), 5000);
+        } else {
+          setError(`Scraping failed: ${errorMsg}`);
+        }
       }
     } catch (err) {
       console.error('Scraping error details:', err);
@@ -108,8 +116,20 @@ const AppSelector = ({ selectedApp, onAppSelect, onScrapeComplete }) => {
 
   return (
     <div className="app-selector">
-      <div className="selector-container">
-        <label htmlFor="app-select" className="selector-label">
+      <div className="selector-container" style={{
+        textAlign: 'center',
+        padding: '20px',
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        borderRadius: '15px',
+        marginBottom: '20px'
+      }}>
+        <label htmlFor="app-select" className="selector-label" style={{
+          display: 'block',
+          color: 'white',
+          fontSize: '18px',
+          fontWeight: 'bold',
+          marginBottom: '15px'
+        }}>
           Select Shopify App:
         </label>
         <select
@@ -118,13 +138,25 @@ const AppSelector = ({ selectedApp, onAppSelect, onScrapeComplete }) => {
           onChange={handleAppChange}
           disabled={scraping}
           className="app-dropdown"
+          style={{
+            padding: '12px 16px',
+            fontSize: '16px',
+            borderRadius: '8px',
+            border: '2px solid rgba(255, 255, 255, 0.3)',
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            color: '#333',
+            minWidth: '300px',
+            cursor: 'pointer'
+          }}
         >
           <option value="">Choose an app to analyze...</option>
-          {apps.map((app) => (
+          {apps.length > 0 ? apps.map((app) => (
             <option key={app} value={app}>
               {app}
             </option>
-          ))}
+          )) : (
+            <option disabled>Loading apps...</option>
+          )}
         </select>
         
         {scraping && (
@@ -137,12 +169,7 @@ const AppSelector = ({ selectedApp, onAppSelect, onScrapeComplete }) => {
           </div>
         )}
 
-        {selectedApp && !scraping && (
-          <div className="selected-app-display">
-            <h3>📊 Analyzing: {selectedApp}</h3>
-            <p>Showing analytics data for {selectedApp} app reviews</p>
-          </div>
-        )}
+
       </div>
       
       {success && (

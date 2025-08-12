@@ -86,30 +86,38 @@ class StoreSEORealtimeScraper {
             CURLOPT_HTTPHEADER => [
                 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
                 'Accept-Language: en-US,en;q=0.5',
-                'Accept-Encoding: gzip, deflate',
                 'Connection: keep-alive',
                 'Upgrade-Insecure-Requests: 1',
             ],
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_SSL_VERIFYHOST => false,
         ]);
-        
+
         $html = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        
+
         if (curl_error($ch)) {
             echo "cURL Error: " . curl_error($ch) . "\n";
             curl_close($ch);
             return false;
         }
-        
+
         curl_close($ch);
-        
+
         if ($httpCode !== 200) {
             echo "HTTP Error: $httpCode\n";
             return false;
         }
-        
+
+        // Try to decompress if it looks like gzipped content
+        if (function_exists('gzdecode') && substr($html, 0, 2) === "\x1f\x8b") {
+            $decompressed = gzdecode($html);
+            if ($decompressed !== false) {
+                $html = $decompressed;
+                echo "✅ Decompressed gzipped content (" . strlen($html) . " bytes)\n";
+            }
+        }
+
         return $html;
     }
 
@@ -122,7 +130,7 @@ class StoreSEORealtimeScraper {
 
         echo "🌐 Fetching live data from Shopify with sort_by=newest...\n";
 
-        // Scrape multiple pages to get all recent reviews
+        // Scrape multiple pages to get all recent reviews (start from page 1 with newest first)
         for ($page = 1; $page <= 5; $page++) {
             $url = $this->baseUrl . "?sort_by=newest&page=$page";
             echo "📄 Scraping page $page: $url\n";
@@ -208,20 +216,17 @@ class StoreSEORealtimeScraper {
 
         $xpath = new DOMXPath($dom);
 
-        // Look for review containers in Shopify's structure
-        $reviewNodes = $xpath->query('//div[contains(@class, "review-listing-item")]');
+        // Look for review containers with the specific structure we found
+        // Each review is in a div with data-review-content-id
+        $reviewNodes = $xpath->query('//div[@data-review-content-id]');
 
-        if ($reviewNodes->length === 0) {
-            // Try alternative selectors
-            $reviewNodes = $xpath->query('//article | //div[contains(@class, "review")]');
-        }
-
-        echo "Found " . $reviewNodes->length . " potential review nodes\n";
+        echo "Found " . $reviewNodes->length . " review nodes with data-review-content-id\n";
 
         foreach ($reviewNodes as $node) {
-            $review = $this->extractShopifyReview($xpath, $node);
+            $review = $this->extractShopifyReviewNew($xpath, $node);
             if ($review) {
                 $reviews[] = $review;
+                echo "✅ Extracted: {$review['review_date']} - {$review['rating']}★ - {$review['store_name']}\n";
             }
         }
 
@@ -229,7 +234,71 @@ class StoreSEORealtimeScraper {
     }
 
     /**
-     * Extract review data from Shopify review node
+     * Extract review data from new Shopify review structure
+     */
+    private function extractShopifyReviewNew($xpath, $node) {
+        try {
+            // Extract rating (count the filled stars)
+            $starNodes = $xpath->query('.//svg[contains(@class, "tw-fill-fg-primary")]', $node);
+            $rating = $starNodes->length;
+
+            // Extract date
+            $dateNode = $xpath->query('.//div[contains(@class, "tw-text-body-xs") and contains(@class, "tw-text-fg-tertiary") and contains(text(), "2025")]', $node);
+            $reviewDate = '';
+            if ($dateNode->length > 0) {
+                $dateText = trim($dateNode->item(0)->textContent);
+                // Convert "August 11, 2025" to "2025-08-11"
+                $reviewDate = date('Y-m-d', strtotime($dateText));
+            }
+
+            // Extract store name
+            $storeNode = $xpath->query('.//div[contains(@class, "tw-text-heading-xs") and contains(@class, "tw-text-fg-primary")]', $node);
+            $storeName = '';
+            if ($storeNode->length > 0) {
+                $storeName = trim($storeNode->item(0)->textContent);
+            }
+
+            // Extract country
+            $countryNode = $xpath->query('.//div[contains(@class, "tw-text-fg-tertiary") and contains(@class, "tw-text-body-xs") and not(contains(@class, "tw-text-heading-xs"))]', $node);
+            $country = '';
+            if ($countryNode->length > 0) {
+                foreach ($countryNode as $cNode) {
+                    $text = trim($cNode->textContent);
+                    if (!empty($text) && !preg_match('/\d{4}/', $text) && $text !== 'Storeware replied') {
+                        $country = $text;
+                        break;
+                    }
+                }
+            }
+
+            // Extract review content
+            $contentNode = $xpath->query('.//p[contains(@class, "tw-break-words")]', $node);
+            $reviewContent = '';
+            if ($contentNode->length > 0) {
+                $reviewContent = trim($contentNode->item(0)->textContent);
+            }
+
+            // Validate required fields
+            if (empty($storeName) || empty($reviewDate) || $rating === 0) {
+                return null;
+            }
+
+            return [
+                'store_name' => $storeName,
+                'country_name' => $country ?: 'Unknown',
+                'rating' => $rating,
+                'review_content' => $reviewContent,
+                'review_date' => $reviewDate
+            ];
+
+        } catch (Exception $e) {
+            echo "Error extracting review: " . $e->getMessage() . "\n";
+            return null;
+        }
+    }
+
+    /**
+     * Extract review data from Shopify review node (old method)
      */
     private function extractShopifyReview($xpath, $node) {
         try {

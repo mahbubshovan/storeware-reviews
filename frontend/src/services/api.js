@@ -34,6 +34,8 @@ export const reviewsAPI = {
   },
   getAvailableApps: () => api.get('/available-apps.php', { params: { _t: Date.now() } }),
   scrapeApp: (appName) => api.post('/scrape-app.php', { app_name: appName }, { timeout: 60000 }),
+  getAccessReviews: () => api.get('/access-reviews.php', { params: { date_range: '30_days', _t: Date.now() } }),
+  updateEarnedBy: (reviewId, earnedBy) => api.post('/update-earned-by.php', { review_id: reviewId, earned_by: earnedBy }),
 };
 
 export default api;

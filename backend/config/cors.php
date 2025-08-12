@@ -6,10 +6,11 @@
 // Production CORS settings
 $allowedOrigins = [
     'http://localhost:5173', // Development
+    'http://localhost:5174', // Development (alternative port)
     'http://localhost:3000',  // Alternative development
-    'https://shopify-reviews-frontend.vercel.app', // Vercel frontend
-    'https://shopify-reviews.vercel.app', // Alternative Vercel domain
-    'https://shopify-reviews-git-main.vercel.app', // Vercel git branch domain
+    'https://shopify-review.vercel.app', // Vercel frontend with custom name
+    'https://shopify-review-git-main.vercel.app', // Vercel git branch domain
+    'https://shopify-review.railway.app', // Railway backend domain
 ];
 
 // Allow any Railway backend domain for development

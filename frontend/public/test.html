@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Static Test</title>
+</head>
+<body style="padding: 20px; font-family: Arial, sans-serif;">
+    <h1 style="color: green;">✅ Static HTML Test - WORKING!</h1>
+    <p>If you can see this, the Vite server is working correctly.</p>
+    
+    <div style="margin-top: 20px; padding: 15px; background-color: #f0f9ff; border-radius: 8px;">
+        <h2>🔍 Debugging Steps:</h2>
+        <ol>
+            <li>✅ Vite server is running on port 5174</li>
+            <li>✅ Static files are being served</li>
+            <li>❓ React app may have JavaScript errors</li>
+        </ol>
+    </div>
+
+    <script>
+        console.log('Static test page loaded successfully');
+        
+        // Test API connection
+        fetch('http://localhost:8000/api/available-apps.php')
+            .then(response => response.json())
+            .then(data => {
+                console.log('API test successful:', data);
+                document.body.innerHTML += '<div style="margin-top: 20px; padding: 15px; background-color: #d4edda; border-radius: 8px;"><h3>✅ API Connection Working</h3><pre>' + JSON.stringify(data, null, 2) + '</pre></div>';
+            })
+            .catch(error => {
+                console.error('API test failed:', error);
+                document.body.innerHTML += '<div style="margin-top: 20px; padding: 15px; background-color: #f8d7da; border-radius: 8px;"><h3>❌ API Connection Failed</h3><p>' + error.message + '</p></div>';
+            });
+    </script>
+</body>
+</html>

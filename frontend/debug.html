@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug API Calls</title>
+</head>
+<body>
+    <h1>Debug API Calls</h1>
+    <div id="results"></div>
+
+    <script>
+        async function testAPIs() {
+            const results = document.getElementById('results');
+            
+            try {
+                // Test available apps
+                console.log('Testing available apps API...');
+                const appsResponse = await fetch('http://localhost:8000/api/available-apps.php');
+                const appsData = await appsResponse.json();
+                console.log('Apps API:', appsData);
+                
+                results.innerHTML += '<h3>Available Apps API:</h3><pre>' + JSON.stringify(appsData, null, 2) + '</pre>';
+                
+                // Test StoreSEO stats
+                console.log('Testing StoreSEO stats...');
+                const statsResponse = await fetch('http://localhost:8000/api/this-month-reviews.php?app_name=StoreSEO');
+                const statsData = await statsResponse.json();
+                console.log('Stats API:', statsData);
+                
+                results.innerHTML += '<h3>StoreSEO This Month:</h3><pre>' + JSON.stringify(statsData, null, 2) + '</pre>';
+                
+                // Test rating distribution
+                console.log('Testing rating distribution...');
+                const distResponse = await fetch('http://localhost:8000/api/review-distribution.php?app_name=StoreSEO');
+                const distData = await distResponse.json();
+                console.log('Distribution API:', distData);
+                
+                results.innerHTML += '<h3>StoreSEO Rating Distribution:</h3><pre>' + JSON.stringify(distData, null, 2) + '</pre>';
+                
+            } catch (error) {
+                console.error('API Test Error:', error);
+                results.innerHTML += '<h3>Error:</h3><pre>' + error.message + '</pre>';
+            }
+        }
+        
+        // Run tests when page loads
+        testAPIs();
+    </script>
+</body>
+</html>

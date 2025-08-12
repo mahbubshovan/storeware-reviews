@@ -7,7 +7,7 @@ ini_set('max_execution_time', 120);
 ob_start();
 
 require_once __DIR__ . '/../config/cors.php';
-require_once __DIR__ . '/../scraper/ShopifyScraper.php';
+require_once __DIR__ . '/../scraper/UniversalLiveScraper.php';
 
 // Only allow POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -33,89 +33,70 @@ try {
     }
     
     $appName = $input['app_name'];
-    
-    // Handle different apps with specialized scrapers
-    $result = null;
 
-    switch ($appName) {
-        case 'StoreFAQ':
-            require_once __DIR__ . '/../scraper/StoreFAQUnified.php';
-            $scraper = new StoreFAQUnified();
-            $result = $scraper->scrapeStoreFAQ();
-            $scrapedCount = $result['total_scraped'] ?? 0;
-            break;
+    // 🔴 UNIVERSAL LIVE SCRAPER - NO MOCK DATA FOR ANY APP
+    error_log("🌐 Using Universal Live Scraper for: $appName");
 
+    // Map app names to their VERIFIED Shopify slugs (ALL 6 ORIGINAL APPS CONFIRMED)
+    $appSlugs = [
+        // ✅ ORIGINAL 6 APPS - ALL VERIFIED AND WORKING
+        'StoreSEO' => 'storeseo',
+        'StoreFAQ' => 'storefaq',
+        'Vidify' => 'vidify',
+        'TrustSync' => 'customer-review-app',
+        'EasyFlow' => 'product-options-4',
+        'BetterDocs FAQ' => 'betterdocs-knowledgebase'
+    ];
 
-
-        case 'StoreSEO':
-            require_once __DIR__ . '/../scraper/StoreSEORealtimeScraper.php';
-            $scraper = new StoreSEORealtimeScraper();
-            $result = $scraper->scrapeStoreSEO();
-            $scrapedCount = $result['total_scraped'] ?? 0;
-            break;
-
-        case 'Vidify':
-            require_once __DIR__ . '/../VidifyDynamicScraper.php';
-            $scraper = new VidifyDynamicScraper();
-            $result = $scraper->scrapeRealtimeReviews(true);
-            $scrapedCount = $result['total_stored'] ?? 0;
-            break;
-
-        case 'TrustSync':
-            require_once __DIR__ . '/../TrustSyncRealtimeScraper.php';
-            $scraper = new TrustSyncRealtimeScraper();
-            $result = $scraper->scrapeRealtimeReviews(true);
-            $scrapedCount = $result['total_stored'] ?? 0;
-            break;
-
-        case 'EasyFlow':
-            require_once __DIR__ . '/../EasyFlowRealtimeScraper.php';
-            $scraper = new EasyFlowRealtimeScraper();
-            $result = $scraper->scrapeRealtimeReviews();
-            $scrapedCount = $result['total_stored'] ?? 0;
-            break;
-
-        case 'BetterDocs FAQ':
-            require_once __DIR__ . '/../BetterDocsFAQRealtimeScraper.php';
-            $scraper = new BetterDocsFAQRealtimeScraper();
-            $result = $scraper->scrapeRealtimeReviews();
-            $scrapedCount = $result['total_stored'] ?? 0;
-            break;
-
-        default:
-            // Use the general Shopify scraper for other apps
-            $scraper = new ShopifyScraper();
-            $availableApps = $scraper->getAvailableApps();
-
-            if (!in_array($appName, $availableApps)) {
-                http_response_code(400);
-                echo json_encode([
-                    'success' => false,
-                    'error' => 'Invalid app name',
-                    'available_apps' => $availableApps
-                ]);
-                exit;
-            }
-
-            // Start scraping (this might take a while)
-            $scrapedCount = $scraper->scrapeAppByName($appName);
-            break;
+    // Get the Shopify slug for the app
+    if (!isset($appSlugs[$appName])) {
+        // App not found in verified list
+        ob_clean();
+        echo json_encode([
+            'success' => false,
+            'message' => "App '$appName' not found on Shopify App Store or not yet supported",
+            'scraped_count' => 0,
+            'note' => 'This app may not exist on Shopify or may have a different name',
+            'supported_apps' => array_keys($appSlugs)
+        ]);
+        exit;
     }
 
-    // Clear any unwanted output from scraping
+    $appSlug = $appSlugs[$appName];
+
+    // Create universal live scraper - NO FALLBACKS, NO MOCK DATA
+    $scraper = new UniversalLiveScraper();
+    $result = $scraper->scrapeApp($appSlug, $appName);
+
+    $scrapedCount = $result['count'] ?? 0;
+
+    if ($result['success']) {
+        // Trigger access reviews sync after successful scraping
+        try {
+            require_once __DIR__ . '/../utils/AccessReviewsSync.php';
+            $accessSync = new AccessReviewsSync();
+            $accessSync->syncAccessReviews();
+        } catch (Exception $syncError) {
+            error_log("Access reviews sync failed: " . $syncError->getMessage());
+        }
+    }
+
+    // Clear any unwanted output from scraping and sync
     ob_clean();
 
-    if ($scrapedCount !== false) {
+    if ($result['success']) {
         echo json_encode([
             'success' => true,
-            'message' => "Successfully scraped $scrapedCount new reviews for $appName",
+            'message' => $result['message'],
             'scraped_count' => $scrapedCount
         ]);
     } else {
-        http_response_code(500);
+        // If live scraping fails, return empty results - NO MOCK DATA
         echo json_encode([
             'success' => false,
-            'error' => 'Scraping failed'
+            'message' => $result['message'],
+            'scraped_count' => 0,
+            'note' => 'Live scraping failed - no fallback data provided'
         ]);
     }
     
