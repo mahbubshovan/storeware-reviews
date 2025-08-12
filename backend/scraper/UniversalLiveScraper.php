@@ -77,8 +77,31 @@ class UniversalLiveScraper {
         }
         
         if (empty($allReviews)) {
-            echo "❌ CRITICAL: No live reviews found for $appName\n";
-            return ['success' => false, 'message' => 'No live reviews found', 'count' => 0];
+            echo "⚠️ No recent reviews found, trying to scrape ALL reviews for rating calculation...\n";
+
+            // Fallback: scrape ALL reviews (not just recent ones) for apps with older reviews
+            $allHistoricalReviews = $this->scrapeAllReviews($baseUrl, $appName);
+
+            if (empty($allHistoricalReviews)) {
+                echo "❌ CRITICAL: No live reviews found for $appName\n";
+                return ['success' => false, 'message' => 'No live reviews found', 'count' => 0];
+            } else {
+                echo "✅ Found " . count($allHistoricalReviews) . " historical reviews for $appName\n";
+
+                // Save all historical reviews
+                $saved = 0;
+                foreach ($allHistoricalReviews as $review) {
+                    if ($this->saveReview($appName, $review)) {
+                        $saved++;
+                    }
+                }
+
+                // Update metadata
+                $this->updateAppMetadata($appName, $this->fetchPage($baseUrl));
+
+                echo "🎯 HISTORICAL SCRAPING COMPLETE: $saved reviews saved for $appName\n";
+                return ['success' => true, 'message' => "Scraped $saved historical reviews", 'count' => $saved];
+            }
         }
         
         // Save all live reviews
@@ -219,16 +242,52 @@ class UniversalLiveScraper {
                 }
             }
 
-            // Extract country
-            $countryNodes = $xpath->query('.//div[contains(@class, "tw-text-fg-tertiary") and contains(@class, "tw-text-body-xs")]', $node);
+            // Extract country - improved logic based on Shopify HTML structure
             $country = 'Unknown';
-            foreach ($countryNodes as $cNode) {
-                $text = trim($cNode->textContent);
-                if (!empty($text) && !preg_match('/\d{4}/', $text) && !strpos($text, 'replied') && strlen($text) < 50 && strlen($text) > 2) {
-                    // Skip common non-country text
-                    if (!in_array(strtolower($text), ['show more', 'show less', 'helpful', 'not helpful'])) {
-                        $country = $text;
-                        break;
+
+            // First, find the store name container
+            $storeContainer = $xpath->query('.//div[contains(@class, "tw-text-heading-xs") and contains(@class, "tw-text-fg-primary")]', $node);
+            if ($storeContainer->length > 0) {
+                // Look for the next sibling div which should contain the country
+                $parentContainer = $storeContainer->item(0)->parentNode;
+                $childDivs = $xpath->query('./div', $parentContainer);
+
+                foreach ($childDivs as $childDiv) {
+                    $text = trim($childDiv->textContent);
+                    // Skip the store name div and look for country
+                    if (!empty($text) &&
+                        !$childDiv->hasAttribute('title') && // Skip store name div (has title attribute)
+                        !preg_match('/\d{4}/', $text) && // Skip dates
+                        !preg_match('/\d+\s+(day|week|month|year)/', $text) && // Skip time periods
+                        !stripos($text, 'using') && // Skip "About X months using the app"
+                        !stripos($text, 'replied') && // Skip reply indicators
+                        strlen($text) > 2 && strlen($text) < 30) { // Reasonable country name length
+
+                        // Check if it looks like a country name
+                        if (preg_match('/^[A-Za-z\s]+$/', $text)) {
+                            $country = $text;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Fallback: try the old method if country still unknown
+            if ($country === 'Unknown') {
+                $countryNodes = $xpath->query('.//div[contains(@class, "tw-text-fg-tertiary") and contains(@class, "tw-text-body-xs")]', $node);
+                foreach ($countryNodes as $cNode) {
+                    $text = trim($cNode->textContent);
+                    if (!empty($text) &&
+                        !preg_match('/\d{4}/', $text) &&
+                        !stripos($text, 'replied') &&
+                        !stripos($text, 'using') &&
+                        strlen($text) < 30 && strlen($text) > 2 &&
+                        preg_match('/^[A-Za-z\s]+$/', $text)) {
+                        // Skip common non-country text
+                        if (!in_array(strtolower($text), ['show more', 'show less', 'helpful', 'not helpful'])) {
+                            $country = $text;
+                            break;
+                        }
                     }
                 }
             }
@@ -276,7 +335,7 @@ class UniversalLiveScraper {
             $conn = $this->dbManager->getConnection();
             $stmt = $conn->prepare("DELETE FROM reviews WHERE app_name = ?");
             $stmt->execute([$appName]);
-            echo "✅ Cleared existing $appName data\n";
+            echo "✅ Cleared existing $appName data (assignments will be preserved by smart sync)\n";
         } catch (Exception $e) {
             echo "❌ Error clearing data: " . $e->getMessage() . "\n";
         }
@@ -330,6 +389,50 @@ class UniversalLiveScraper {
         } catch (Exception $e) {
             echo "❌ Error updating metadata: " . $e->getMessage() . "\n";
         }
+    }
+
+    /**
+     * Scrape ALL reviews (not just recent ones) for apps with older reviews
+     * This is used as a fallback when no recent reviews are found
+     */
+    private function scrapeAllReviews($baseUrl, $appName) {
+        echo "🔄 FALLBACK MODE: Scraping ALL reviews for $appName (not just recent)\n";
+
+        $allReviews = [];
+
+        // Scrape pages until we get all reviews (no date filtering)
+        for ($page = 1; $page <= 5; $page++) { // Limit to 5 pages for historical data
+            $url = $baseUrl . "?sort_by=newest&page=$page";
+            echo "📄 Historical page $page: $url\n";
+
+            $html = $this->fetchPage($url);
+            if (!$html) {
+                echo "❌ Failed to fetch historical page $page - STOPPING\n";
+                break;
+            }
+
+            $pageReviews = $this->parseReviewsFromHTML($html);
+            if (empty($pageReviews)) {
+                echo "⚠️ No reviews found on historical page $page - STOPPING\n";
+                break;
+            }
+
+            // Add ALL reviews (no date filtering)
+            foreach ($pageReviews as $review) {
+                $allReviews[] = $review;
+                echo "✅ Historical: {$review['review_date']} - {$review['rating']}★ - {$review['store_name']}\n";
+            }
+
+            echo "📊 Historical page $page: Found " . count($pageReviews) . " reviews\n";
+
+            // If we got fewer than expected reviews, we might be at the end
+            if (count($pageReviews) < 10) {
+                echo "📅 Reached end of reviews, stopping\n";
+                break;
+            }
+        }
+
+        return $allReviews;
     }
 }
 ?>

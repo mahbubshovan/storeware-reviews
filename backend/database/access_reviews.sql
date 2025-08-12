@@ -10,8 +10,8 @@ CREATE TABLE IF NOT EXISTS access_reviews (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
-    -- Foreign key constraint to main reviews table
-    FOREIGN KEY (original_review_id) REFERENCES reviews(id) ON DELETE CASCADE,
+    -- Foreign key constraint to main reviews table (NO CASCADE to preserve assignments)
+    FOREIGN KEY (original_review_id) REFERENCES reviews(id),
     
     -- Unique constraint to prevent duplicates
     UNIQUE KEY unique_review (original_review_id),

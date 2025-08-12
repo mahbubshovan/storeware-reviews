@@ -155,25 +155,44 @@ const Access = () => {
     return content.substring(0, maxLength) + '...';
   };
 
-  const getCountryName = (countryCode) => {
-    const countryNames = {
-      'US': 'United States',
-      'CA': 'Canada',
-      'UK': 'United Kingdom',
-      'AU': 'Australia',
-      'DE': 'Germany',
-      'FR': 'France',
-      'NL': 'Netherlands',
-      'SE': 'Sweden',
-      'NO': 'Norway',
-      'DK': 'Denmark',
-      'FI': 'Finland',
-      'BE': 'Belgium',
-      'CH': 'Switzerland',
-      'AT': 'Austria',
-      'IE': 'Ireland'
+  const getCountryName = (countryData) => {
+    if (!countryData || countryData === 'Unknown') {
+      return 'Unknown';
+    }
+
+    // Clean up the country data - extract country name from mixed format
+    // Handle formats like "StoreName\n      \n          CountryName"
+    const cleanCountry = countryData
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0)
+      .pop(); // Get the last non-empty line (usually the country)
+
+    // Map common country variations to clean names
+    const countryMap = {
+      'United States': '🇺🇸 United States',
+      'Canada': '🇨🇦 Canada',
+      'United Kingdom': '🇬🇧 United Kingdom',
+      'Australia': '🇦🇺 Australia',
+      'Germany': '🇩🇪 Germany',
+      'France': '🇫🇷 France',
+      'South Africa': '🇿🇦 South Africa',
+      'India': '🇮🇳 India',
+      'Japan': '🇯🇵 Japan',
+      'Singapore': '🇸🇬 Singapore',
+      'Costa Rica': '🇨🇷 Costa Rica',
+      'Netherlands': '🇳🇱 Netherlands',
+      'Sweden': '🇸🇪 Sweden',
+      'Norway': '🇳🇴 Norway',
+      'Denmark': '🇩🇰 Denmark',
+      'Finland': '🇫🇮 Finland',
+      'Belgium': '🇧🇪 Belgium',
+      'Switzerland': '🇨🇭 Switzerland',
+      'Austria': '🇦🇹 Austria',
+      'Ireland': '🇮🇪 Ireland'
     };
-    return countryNames[countryCode] || countryCode;
+
+    return countryMap[cleanCountry] || `🌍 ${cleanCountry}`;
   };
 
   // Show password form if not authenticated

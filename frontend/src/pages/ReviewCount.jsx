@@ -1,6 +1,46 @@
 import React, { useState, useEffect } from 'react';
 
 const ReviewCount = () => {
+  // Clean up country names from messy database format
+  const getCountryName = (countryData) => {
+    if (!countryData || countryData === 'Unknown') {
+      return 'Unknown';
+    }
+
+    // Clean up the country data - extract country name from mixed format
+    // Handle formats like "StoreName\n      \n          CountryName"
+    const cleanCountry = countryData
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0)
+      .pop(); // Get the last non-empty line (usually the country)
+
+    // Map common country variations to clean names with flags
+    const countryMap = {
+      'United States': '🇺🇸 United States',
+      'Canada': '🇨🇦 Canada',
+      'United Kingdom': '🇬🇧 United Kingdom',
+      'Australia': '🇦🇺 Australia',
+      'Germany': '🇩🇪 Germany',
+      'France': '🇫🇷 France',
+      'South Africa': '🇿🇦 South Africa',
+      'India': '🇮🇳 India',
+      'Japan': '🇯🇵 Japan',
+      'Singapore': '🇸🇬 Singapore',
+      'Costa Rica': '🇨🇷 Costa Rica',
+      'Netherlands': '🇳🇱 Netherlands',
+      'Sweden': '🇸🇪 Sweden',
+      'Norway': '🇳🇴 Norway',
+      'Denmark': '🇩🇰 Denmark',
+      'Finland': '🇫🇮 Finland',
+      'Belgium': '🇧🇪 Belgium',
+      'Switzerland': '🇨🇭 Switzerland',
+      'Austria': '🇦🇹 Austria',
+      'Ireland': '🇮🇪 Ireland'
+    };
+
+    return countryMap[cleanCountry] || `🌍 ${cleanCountry}`;
+  };
   const [apps, setApps] = useState([]);
   const [selectedApp, setSelectedApp] = useState('');
   const [agentStats, setAgentStats] = useState([]);
@@ -903,7 +943,7 @@ const ReviewCount = () => {
                                 color: 'white',
                                 textShadow: '0 2px 4px rgba(0,0,0,0.3)'
                               }}>
-                                {stat.country_name}
+                                {getCountryName(stat.country_name)}
                               </h4>
 
                               {/* Review count and percentage */}

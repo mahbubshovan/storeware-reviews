@@ -28,11 +28,11 @@ class AccessReviewsSync {
             // 1. Remove reviews older than 30 days from access_reviews
             $this->removeOldReviews($conn);
 
-            // 2. Remove reviews that no longer exist in the main reviews table
-            $this->removeOrphanedReviews($conn);
-
-            // 3. Add new reviews from last 30 days
+            // 2. SMART SYNC: Add/update reviews and preserve assignments (BEFORE removing orphans)
             $this->addNewReviews($conn);
+
+            // 3. Remove truly orphaned reviews (after smart matching)
+            $this->removeOrphanedReviews($conn);
             
             // Commit transaction
             $conn->commit();
@@ -109,51 +109,95 @@ class AccessReviewsSync {
 
     /**
      * Add new reviews from last 30 days to access_reviews table
-     * Preserves existing earned_by values
+     * SMART SYNC: Preserves existing earned_by values by matching content and date
      */
     private function addNewReviews($conn) {
         $thirtyDaysAgo = date('Y-m-d', strtotime('-30 days'));
-        
-        // Get all reviews from last 30 days that aren't already in access_reviews
+
+        // Get all reviews from last 30 days
         $stmt = $conn->prepare("
             SELECT r.id, r.app_name, r.review_date, r.review_content, r.country_name
             FROM reviews r
-            LEFT JOIN access_reviews ar ON r.id = ar.original_review_id
-            WHERE r.review_date >= ? 
-            AND ar.id IS NULL
+            WHERE r.review_date >= ?
             ORDER BY r.app_name, r.review_date DESC
         ");
-        
+
         $stmt->execute([$thirtyDaysAgo]);
-        $newReviews = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        if (empty($newReviews)) {
-            echo "No new reviews to add to access_reviews\n";
+        $allRecentReviews = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if (empty($allRecentReviews)) {
+            echo "No recent reviews found to sync\n";
             return;
         }
-        
-        // Insert new reviews into access_reviews
-        $insertStmt = $conn->prepare("
-            INSERT INTO access_reviews (app_name, review_date, review_content, country_name, original_review_id)
-            VALUES (?, ?, ?, ?, ?)
-        ");
-        
+
         $addedCount = 0;
-        foreach ($newReviews as $review) {
-            $success = $insertStmt->execute([
+        $preservedCount = 0;
+
+        foreach ($allRecentReviews as $review) {
+            // Check if this review already exists in access_reviews by matching content and date
+            // This handles cases where reviews were re-scraped and got new IDs
+            $existingStmt = $conn->prepare("
+                SELECT id, earned_by, original_review_id
+                FROM access_reviews
+                WHERE app_name = ?
+                AND review_date = ?
+                AND review_content = ?
+                LIMIT 1
+            ");
+
+            $existingStmt->execute([
                 $review['app_name'],
                 $review['review_date'],
-                $review['review_content'],
-                $review['country_name'],
-                $review['id']
+                $review['review_content']
             ]);
-            
-            if ($success) {
-                $addedCount++;
+
+            $existingReview = $existingStmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($existingReview) {
+                // Review exists - update the original_review_id to maintain the link
+                // and preserve the earned_by assignment
+                $updateStmt = $conn->prepare("
+                    UPDATE access_reviews
+                    SET original_review_id = ?, country_name = ?
+                    WHERE id = ?
+                ");
+
+                $success = $updateStmt->execute([
+                    $review['id'],
+                    $review['country_name'],
+                    $existingReview['id']
+                ]);
+
+                if ($success && !empty($existingReview['earned_by'])) {
+                    $preservedCount++;
+                    echo "✅ Preserved assignment: {$review['app_name']} review from {$review['review_date']} (assigned to: {$existingReview['earned_by']}) - Updated original_review_id to {$review['id']}\n";
+                } elseif ($success) {
+                    echo "🔄 Updated unassigned review link: {$review['app_name']} review from {$review['review_date']} - Updated original_review_id to {$review['id']}\n";
+                } else {
+                    echo "❌ Failed to update review link for {$review['app_name']} review from {$review['review_date']}\n";
+                }
+            } else {
+                // New review - add it as unassigned
+                $insertStmt = $conn->prepare("
+                    INSERT INTO access_reviews (app_name, review_date, review_content, country_name, original_review_id)
+                    VALUES (?, ?, ?, ?, ?)
+                ");
+
+                $success = $insertStmt->execute([
+                    $review['app_name'],
+                    $review['review_date'],
+                    $review['review_content'],
+                    $review['country_name'],
+                    $review['id']
+                ]);
+
+                if ($success) {
+                    $addedCount++;
+                }
             }
         }
-        
-        echo "Added $addedCount new reviews to access_reviews\n";
+
+        echo "Added $addedCount new reviews, preserved $preservedCount assignments\n";
     }
     
     /**
