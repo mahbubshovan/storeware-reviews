@@ -64,8 +64,18 @@ const AppSelector = ({ selectedApp, onAppSelect, onScrapeComplete }) => {
       const response = await reviewsAPI.scrapeApp(appName);
 
       if (response.data.success) {
-        // Show success message
-        setSuccess(`Successfully scraped ${response.data.scraped_count} new reviews for ${appName}!`);
+        // Use the actual message from the API response instead of hardcoding
+        const message = response.data.message;
+        const isHistorical = message.includes('historical');
+
+        if (isHistorical) {
+          // For historical reviews (apps with no recent reviews)
+          setSuccess(`${appName} data loaded! (${message})`);
+        } else {
+          // For recent reviews
+          setSuccess(`Successfully ${message} for ${appName}!`);
+        }
+
         // Notify parent component that scraping is complete
         onScrapeComplete(appName, response.data.scraped_count);
         // Clear success message after 5 seconds
