@@ -12,14 +12,11 @@ class Database {
     private $conn;
 
     public function __construct() {
-        // Railway MySQL environment variables (with fallbacks for local development)
-        $this->host = $_ENV['MYSQL_HOST'] ?? $_ENV['DB_HOST'] ?? getenv('MYSQL_HOST') ?: getenv('DB_HOST') ?: 'localhost';
-        $this->db_name = $_ENV['MYSQL_DATABASE'] ?? $_ENV['DB_NAME'] ?? getenv('MYSQL_DATABASE') ?: getenv('DB_NAME') ?: 'shopify_reviews';
-        $this->username = $_ENV['MYSQL_USER'] ?? $_ENV['DB_USER'] ?? getenv('MYSQL_USER') ?: getenv('DB_USER') ?: 'root';
-        $this->password = $_ENV['MYSQL_PASSWORD'] ?? $_ENV['DB_PASS'] ?? getenv('MYSQL_PASSWORD') ?: getenv('DB_PASS') ?: '';
-
-        // Railway also provides MYSQL_PORT
-        $this->port = $_ENV['MYSQL_PORT'] ?? getenv('MYSQL_PORT') ?: '3306';
+        // Load environment variables or use defaults
+        $this->host = $_ENV['DB_HOST'] ?? getenv('DB_HOST') ?: 'localhost';
+        $this->db_name = $_ENV['DB_NAME'] ?? getenv('DB_NAME') ?: 'shopify_reviews';
+        $this->username = $_ENV['DB_USER'] ?? getenv('DB_USER') ?: 'root';
+        $this->password = $_ENV['DB_PASS'] ?? getenv('DB_PASS') ?: '';
     }
 
     public function getConnection() {
