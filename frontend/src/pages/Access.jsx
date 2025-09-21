@@ -136,6 +136,14 @@ const Access = () => {
     return new Date(dateString).toLocaleDateString();
   };
 
+  const renderStars = (rating) => {
+    const numRating = parseInt(rating);
+    if (isNaN(numRating) || numRating < 1 || numRating > 5) {
+      return '❓'; // Show question mark for invalid/missing ratings
+    }
+    return '⭐'.repeat(numRating);
+  };
+
   const getAppColor = (index) => {
     const colors = [
       '#4f46e5', // Indigo
@@ -331,6 +339,7 @@ const Access = () => {
                           <div className="meta-info">
                             <span>{formatDate(review.review_date)}</span>
                             <span>{getCountryName(review.country_name)}</span>
+                            <span>{renderStars(review.rating)}</span>
                             <div className="review-id">ID: {review.id}</div>
                           </div>
                         </div>

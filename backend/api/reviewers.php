@@ -6,13 +6,14 @@ try {
     $dbManager = new DatabaseManager();
     $conn = $dbManager->getConnection();
     
-    // Get distinct reviewer names from the access_reviews table
-    // Exclude "Click to assign" entries and sort alphabetically
+    // Get distinct reviewer names from the reviews table (same as Access Tabbed)
+    // Updated for consistency with Access Tabbed data source
     $stmt = $conn->prepare("
-        SELECT DISTINCT earned_by 
-        FROM access_reviews 
-        WHERE earned_by IS NOT NULL 
-        AND earned_by != 'Click to assign'
+        SELECT DISTINCT earned_by
+        FROM reviews
+        WHERE earned_by IS NOT NULL
+        AND earned_by != ''
+        AND is_active = TRUE
         ORDER BY earned_by ASC
     ");
     $stmt->execute();

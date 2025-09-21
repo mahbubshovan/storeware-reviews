@@ -134,9 +134,8 @@ class StoreFAQComprehensiveScraper {
     
     private function extractSingleReview($reviewNode, $xpath) {
         try {
-            // Extract rating by counting SVG star elements
-            $starNodes = $xpath->query(".//svg[contains(@class, 'tw-fill-fg-primary')]", $reviewNode);
-            $rating = $starNodes->length > 0 ? min($starNodes->length, 5) : 5;
+            // Extract rating by counting SVG star elements - improved method
+            $rating = $this->extractRatingFromReview($reviewNode, $xpath);
 
             // Extract review text from the specific structure
             $reviewText = '';
@@ -348,6 +347,55 @@ class StoreFAQComprehensiveScraper {
         } catch (Exception $e) {
             echo "❌ Error testing database: " . $e->getMessage() . "\n";
         }
+    }
+
+    /**
+     * Improved rating extraction method
+     */
+    private function extractRatingFromReview($reviewNode, $xpath) {
+        // Method 1: Count filled stars with specific class
+        $filledStars = $xpath->query(".//svg[contains(@class, 'tw-fill-fg-primary')]", $reviewNode);
+        if ($filledStars->length > 0 && $filledStars->length <= 5) {
+            return $filledStars->length;
+        }
+
+        // Method 2: Look for aria-label with rating
+        $ratingNodes = $xpath->query(".//*[contains(@aria-label, 'out of') and contains(@aria-label, 'stars')]", $reviewNode);
+        foreach ($ratingNodes as $node) {
+            $ariaLabel = $node->getAttribute('aria-label');
+            if (preg_match('/(\d+)\s*out\s*of\s*\d+\s*stars/', $ariaLabel, $matches)) {
+                return intval($matches[1]);
+            }
+        }
+
+        // Method 3: Look for different star class variations
+        $starVariations = [
+            ".//svg[contains(@class, 'filled')]",
+            ".//svg[contains(@class, 'star-filled')]",
+            ".//span[contains(@class, 'star') and contains(@class, 'filled')]"
+        ];
+
+        foreach ($starVariations as $selector) {
+            $stars = $xpath->query($selector, $reviewNode);
+            if ($stars->length > 0 && $stars->length <= 5) {
+                return $stars->length;
+            }
+        }
+
+        // Method 4: Look for rating in text content
+        $textNodes = $xpath->query('.//text()', $reviewNode);
+        foreach ($textNodes as $textNode) {
+            $text = trim($textNode->textContent);
+            if (preg_match('/(\d+)\s*(?:star|★)/', $text, $matches)) {
+                $rating = intval($matches[1]);
+                if ($rating >= 1 && $rating <= 5) {
+                    return $rating;
+                }
+            }
+        }
+
+        // Return 0 if no rating found (don't assume any rating)
+        return 0;
     }
 }
 

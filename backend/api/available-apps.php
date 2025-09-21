@@ -10,7 +10,7 @@ try {
         'Vidify',
         'TrustSync',
         'EasyFlow',
-        'BetterDocs FAQ'
+        'BetterDocs FAQ Knowledge Base'
     ];
 
     echo json_encode([

@@ -20,9 +20,10 @@ try {
         exit;
     }
     
-    // Get app_name parameter
+    // Get app_name and filter parameters
     $appName = $_GET['app_name'] ?? '';
-    
+    $filter = $_GET['filter'] ?? 'last_30_days'; // Default to last 30 days
+
     if (empty($appName)) {
         echo json_encode([
             'success' => false,
@@ -34,34 +35,73 @@ try {
     $dbManager = new DatabaseManager();
     $conn = $dbManager->getConnection();
     
-    // Get country-wise review counts for the specified app from last 30 days
-    $thirtyDaysAgo = date('Y-m-d', strtotime('-30 days'));
-    
-    $stmt = $conn->prepare("
-        SELECT 
-            country_name,
-            COUNT(*) as review_count
-        FROM access_reviews 
-        WHERE app_name = ? 
-        AND review_date >= ?
-        AND country_name IS NOT NULL 
-        AND country_name != ''
-        GROUP BY country_name 
-        ORDER BY review_count DESC, country_name ASC
-    ");
-    
-    $stmt->execute([$appName, $thirtyDaysAgo]);
+    // Get country-wise review counts for the specified app with date filtering
+    // Using standardized date calculations for consistency
+    require_once __DIR__ . '/../utils/DateCalculations.php';
+
+    // Determine date condition based on filter
+    $dateCondition = '';
+    if ($filter === 'last_30_days') {
+        $dateCondition = DateCalculations::getLast30DaysCondition();
+    } elseif ($filter === 'all_time') {
+        $dateCondition = ''; // No date filtering for all time
+    }
+
+    if ($filter === 'all_time') {
+        $query = "
+            SELECT
+                country_name,
+                COUNT(*) as review_count
+            FROM reviews
+            WHERE app_name = ?
+            AND is_active = TRUE
+            AND country_name IS NOT NULL
+            AND country_name != ''
+            GROUP BY country_name
+            ORDER BY review_count DESC, country_name ASC
+        ";
+    } else {
+        // last_30_days
+        $query = "
+            SELECT
+                country_name,
+                COUNT(*) as review_count
+            FROM reviews
+            WHERE app_name = ?
+            AND is_active = TRUE
+            AND country_name IS NOT NULL
+            AND country_name != ''
+            AND $dateCondition
+            GROUP BY country_name
+            ORDER BY review_count DESC, country_name ASC
+        ";
+    }
+
+    $stmt = $conn->prepare($query);
+
+    $stmt->execute([$appName]);
     $countryStats = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     // Also get total review count for this app
-    $totalStmt = $conn->prepare("
-        SELECT COUNT(*) as total_count
-        FROM access_reviews 
-        WHERE app_name = ? 
-        AND review_date >= ?
-    ");
-    
-    $totalStmt->execute([$appName, $thirtyDaysAgo]);
+    if ($filter === 'all_time') {
+        $totalQuery = "
+            SELECT COUNT(*) as total_count
+            FROM reviews
+            WHERE app_name = ?
+            AND is_active = TRUE
+        ";
+    } else {
+        $totalQuery = "
+            SELECT COUNT(*) as total_count
+            FROM reviews
+            WHERE app_name = ?
+            AND is_active = TRUE
+            AND $dateCondition
+        ";
+    }
+
+    $totalStmt = $conn->prepare($totalQuery);
+    $totalStmt->execute([$appName]);
     $totalCount = $totalStmt->fetchColumn();
     
     // Calculate percentages and add additional info

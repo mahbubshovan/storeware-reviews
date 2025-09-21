@@ -28,7 +28,7 @@ class PreciseRatingExtractor {
         }
         
         // Extract overall rating and total from JSON-LD
-        $overallRating = 5.0;
+        $overallRating = 0.0; // Default to 0 instead of 5
         $totalReviews = 0;
         
         if (preg_match('/"ratingValue":([\d.]+)/', $html, $matches)) {

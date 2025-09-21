@@ -33,6 +33,72 @@ CREATE TABLE reviews (
 );
 
 -- =====================================================
+-- PER-DEVICE RATE LIMITING TABLES
+-- =====================================================
+
+-- Track unique client devices
+CREATE TABLE clients (
+  client_id CHAR(36) PRIMARY KEY,
+  first_seen DATETIME DEFAULT CURRENT_TIMESTAMP,
+  last_seen DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_last_seen (last_seen)
+);
+
+-- Per-device scraping schedule (6-hour rate limiting)
+CREATE TABLE scrape_schedule (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  app_slug VARCHAR(64) NOT NULL,
+  client_id CHAR(36) NOT NULL,
+  next_run_at DATETIME NOT NULL,
+  last_run_at DATETIME NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_app_client (app_slug, client_id),
+  FOREIGN KEY (client_id) REFERENCES clients(client_id) ON DELETE CASCADE,
+  INDEX idx_next_run (next_run_at),
+  INDEX idx_app_slug (app_slug)
+);
+
+-- Immutable snapshots of scraped data
+CREATE TABLE snapshots (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  app_slug VARCHAR(64) NOT NULL,
+  scraped_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  source_url TEXT NOT NULL,
+  etag VARCHAR(255) NULL,
+  last_modified VARCHAR(255) NULL,
+  content_hash CHAR(64) NOT NULL,
+  totals JSON NOT NULL,
+  last30Days JSON NOT NULL,
+  thisMonth JSON NOT NULL,
+  ratingDistribution JSON NOT NULL,
+  latestReviews JSON NOT NULL,
+  INDEX idx_app_scraped (app_slug, scraped_at),
+  INDEX idx_content_hash (content_hash)
+);
+
+-- Per-device pointers to current snapshot
+CREATE TABLE snapshot_pointer (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  app_slug VARCHAR(64) NOT NULL,
+  client_id CHAR(36) NOT NULL,
+  snapshot_id BIGINT NOT NULL,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_ptr (app_slug, client_id),
+  FOREIGN KEY (client_id) REFERENCES clients(client_id) ON DELETE CASCADE,
+  FOREIGN KEY (snapshot_id) REFERENCES snapshots(id) ON DELETE CASCADE,
+  INDEX idx_app_client (app_slug, client_id)
+);
+
+-- Track upstream changes for change detection
+CREATE TABLE upstream_state (
+  app_slug VARCHAR(64) PRIMARY KEY,
+  last_content_hash CHAR(64) NOT NULL,
+  last_seen_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_last_seen (last_seen_at)
+);
+
+-- =====================================================
 -- APP METADATA TABLE
 -- =====================================================
 CREATE TABLE IF NOT EXISTS app_metadata (

@@ -72,14 +72,31 @@ const AppSelector = ({ selectedApp, onAppSelect, onScrapeComplete }) => {
           // For historical reviews (apps with no recent reviews)
           setSuccess(`${appName} data loaded! (${message})`);
         } else {
-          // For recent reviews
-          setSuccess(`Successfully ${message} for ${appName}!`);
+          // For recent reviews - only show success for actual scraping, not rate limiting
+          if (!message.includes('Rate limited')) {
+            let successMessage = `Successfully ${message} for ${appName}!`;
+
+            // Add smart sync information if available
+            if (response.data.smart_sync) {
+              const sync = response.data.smart_sync;
+              if (sync.new_added > 0) {
+                successMessage += ` | 🧠 Smart Sync: ${sync.new_added} new reviews added to Access Reviews (${sync.duplicates_skipped} duplicates skipped)`;
+              } else if (sync.total_found > 0) {
+                successMessage += ` | 🧠 Smart Sync: All ${sync.total_found} reviews already exist in Access Reviews`;
+              } else {
+                successMessage += ` | 🧠 Smart Sync: No new reviews for today`;
+              }
+            }
+
+            setSuccess(successMessage);
+          }
         }
 
         // Notify parent component that scraping is complete
         onScrapeComplete(appName, response.data.scraped_count);
-        // Clear success message after 5 seconds
-        setTimeout(() => setSuccess(null), 5000);
+        // Clear success message after 8 seconds (longer for smart sync info)
+        const timeout = response.data.smart_sync ? 8000 : 5000;
+        setTimeout(() => setSuccess(null), timeout);
       } else {
         // For apps with no recent reviews, show a more user-friendly message
         const errorMsg = response.data.message || response.data.error || 'Unknown error';
@@ -125,39 +142,14 @@ const AppSelector = ({ selectedApp, onAppSelect, onScrapeComplete }) => {
   }
 
   return (
-    <div className="app-selector">
-      <div className="selector-container" style={{
-        textAlign: 'center',
-        padding: '20px',
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        borderRadius: '15px',
-        marginBottom: '20px'
-      }}>
-        <label htmlFor="app-select" className="selector-label" style={{
-          display: 'block',
-          color: 'white',
-          fontSize: '18px',
-          fontWeight: 'bold',
-          marginBottom: '15px'
-        }}>
-          Select Shopify App:
-        </label>
+    <div className="app-selector-new">
+      <div className="selector-container-new">
         <select
           id="app-select"
           value={selectedApp || ''}
           onChange={handleAppChange}
           disabled={scraping}
-          className="app-dropdown"
-          style={{
-            padding: '12px 16px',
-            fontSize: '16px',
-            borderRadius: '8px',
-            border: '2px solid rgba(255, 255, 255, 0.3)',
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
-            color: '#333',
-            minWidth: '300px',
-            cursor: 'pointer'
-          }}
+          className="app-dropdown-new"
         >
           <option value="">Choose an app to analyze...</option>
           {apps.length > 0 ? apps.map((app) => (
@@ -168,28 +160,26 @@ const AppSelector = ({ selectedApp, onAppSelect, onScrapeComplete }) => {
             <option disabled>Loading apps...</option>
           )}
         </select>
-        
+
         {scraping && (
-          <div className="scraping-status">
-            <div className="spinner"></div>
-            <span>Live scraping {selectedApp} reviews from multiple pages...</span>
-            <div className="scraping-details">
-              <small>Checking review dates and extracting fresh data</small>
+          <div className="scraping-status-new">
+            <div className="spinner-new"></div>
+            <span>Live scraping {selectedApp} reviews...</span>
+            <div className="scraping-details-new">
+              <small>Extracting fresh data from Shopify</small>
             </div>
           </div>
         )}
-
-
       </div>
-      
+
       {success && (
-        <div className="success-message">
+        <div className="success-message-new">
           {success}
         </div>
       )}
 
       {error && (
-        <div className="error-message">
+        <div className="error-message-new">
           {error}
         </div>
       )}

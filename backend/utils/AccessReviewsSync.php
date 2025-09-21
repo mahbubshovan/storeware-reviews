@@ -116,7 +116,7 @@ class AccessReviewsSync {
 
         // Get all reviews from last 30 days
         $stmt = $conn->prepare("
-            SELECT r.id, r.app_name, r.review_date, r.review_content, r.country_name
+            SELECT r.id, r.app_name, r.review_date, r.review_content, r.country_name, r.rating
             FROM reviews r
             WHERE r.review_date >= ?
             ORDER BY r.app_name, r.review_date DESC
@@ -158,13 +158,14 @@ class AccessReviewsSync {
                 // and preserve the earned_by assignment
                 $updateStmt = $conn->prepare("
                     UPDATE access_reviews
-                    SET original_review_id = ?, country_name = ?
+                    SET original_review_id = ?, country_name = ?, rating = ?
                     WHERE id = ?
                 ");
 
                 $success = $updateStmt->execute([
                     $review['id'],
                     $review['country_name'],
+                    $review['rating'],
                     $existingReview['id']
                 ]);
 
@@ -179,8 +180,8 @@ class AccessReviewsSync {
             } else {
                 // New review - add it as unassigned
                 $insertStmt = $conn->prepare("
-                    INSERT INTO access_reviews (app_name, review_date, review_content, country_name, original_review_id)
-                    VALUES (?, ?, ?, ?, ?)
+                    INSERT INTO access_reviews (app_name, review_date, review_content, country_name, rating, original_review_id)
+                    VALUES (?, ?, ?, ?, ?, ?)
                 ");
 
                 $success = $insertStmt->execute([
@@ -188,6 +189,7 @@ class AccessReviewsSync {
                     $review['review_date'],
                     $review['review_content'],
                     $review['country_name'],
+                    $review['rating'],
                     $review['id']
                 ]);
 
@@ -211,7 +213,7 @@ class AccessReviewsSync {
             $dateFilter = $this->getDateFilter($dateRange);
 
             $stmt = $conn->prepare("
-                SELECT app_name, review_date, review_content, country_name, earned_by, id, original_review_id
+                SELECT app_name, review_date, review_content, country_name, rating, earned_by, id, original_review_id
                 FROM access_reviews
                 WHERE review_date >= ?
                 ORDER BY app_name, review_date DESC

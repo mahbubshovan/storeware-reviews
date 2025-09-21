@@ -9,11 +9,11 @@ require_once __DIR__ . '/../scraper/PreciseRatingExtractor.php';
 try {
     $apps = [
         'StoreSEO' => 'storeseo',
-        'StoreFAQ' => 'storefaq', 
+        'StoreFAQ' => 'storefaq',
         'Vidify' => 'vidify',
         'TrustSync' => 'customer-review-app',
         'EasyFlow' => 'product-options-4',
-        'BetterDocs FAQ' => 'betterdocs-knowledgebase'
+        'BetterDocs FAQ Knowledge Base' => 'betterdocs-knowledgebase'
     ];
     
     $extractor = new PreciseRatingExtractor();

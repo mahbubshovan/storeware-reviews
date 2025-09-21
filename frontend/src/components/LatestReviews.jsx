@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { reviewsAPI } from '../services/api';
+import { useFreshData } from '../hooks/useFreshData';
 
 const LatestReviews = ({ selectedApp, refreshKey }) => {
   // Clean up country names from messy database format
@@ -44,33 +45,59 @@ const LatestReviews = ({ selectedApp, refreshKey }) => {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
+
+  // Use fresh data hook for intelligent data management
+  const { isRefreshing, refreshData, needsRefresh } = useFreshData(selectedApp);
+
+  const fetchLatestReviews = async (forceFresh = false) => {
+    // Don't fetch if no app is selected
+    if (!selectedApp) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const response = forceFresh
+        ? await reviewsAPI.getFreshReviews(selectedApp)
+        : await reviewsAPI.getLatestReviews(selectedApp);
+
+      if (forceFresh && response.data.success) {
+        setReviews(response.data.reviews);
+      } else if (!forceFresh) {
+        setReviews(response.data.reviews);
+      }
+
+      setLastUpdated(new Date().toLocaleString());
+      setError(null);
+    } catch (err) {
+      setError(forceFresh ? 'Failed to fetch fresh reviews' : 'Failed to fetch latest reviews');
+      console.error('Error fetching reviews:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRefreshClick = async () => {
+    const freshData = await refreshData(selectedApp, true);
+    if (freshData && freshData.reviews) {
+      setReviews(freshData.reviews);
+      setLastUpdated(new Date().toLocaleString());
+    }
+  };
 
   useEffect(() => {
-    const fetchLatestReviews = async () => {
-      // Don't fetch if no app is selected
-      if (!selectedApp) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        const response = await reviewsAPI.getLatestReviews(selectedApp);
-        setReviews(response.data.reviews);
-        setError(null);
-      } catch (err) {
-        setError('Failed to fetch latest reviews');
-        console.error('Error fetching reviews:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchLatestReviews();
   }, [selectedApp, refreshKey]);
 
   const renderStars = (rating) => {
-    return '⭐'.repeat(rating);
+    const numRating = parseInt(rating);
+    if (isNaN(numRating) || numRating < 1 || numRating > 5) {
+      return '❓'; // Show question mark for invalid/missing ratings
+    }
+    return '⭐'.repeat(numRating);
   };
 
   const formatDate = (dateString) => {
@@ -101,8 +128,24 @@ const LatestReviews = ({ selectedApp, refreshKey }) => {
 
   return (
     <section className="latest-reviews">
-      <h2>Latest Reviews</h2>
-      
+      <div className="latest-reviews-header">
+        <h2>Latest Reviews</h2>
+        <div className="reviews-controls">
+          {lastUpdated && (
+            <span className="last-updated">
+              Last updated: {lastUpdated}
+            </span>
+          )}
+          <button
+            onClick={handleRefreshClick}
+            disabled={isRefreshing || loading}
+            className="refresh-btn"
+          >
+            {isRefreshing ? '🔄 Refreshing...' : '🔄 Refresh Data'}
+          </button>
+        </div>
+      </div>
+
       <div className="reviews-list">
         {reviews.map((review, index) => (
           <div key={index} className="review-item">

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { reviewsAPI } from '../services/api';
+import { useFreshData } from '../hooks/useFreshData';
 
 const SummaryStats = ({ selectedApp, refreshKey }) => {
   const [stats, setStats] = useState({
@@ -9,6 +10,9 @@ const SummaryStats = ({ selectedApp, refreshKey }) => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Use fresh data hook for intelligent data management
+  const { isRefreshing, refreshData } = useFreshData(selectedApp);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -26,34 +30,51 @@ const SummaryStats = ({ selectedApp, refreshKey }) => {
 
       try {
         setLoading(true);
-        const [thisMonthRes, last30DaysRes, avgRatingRes] = await Promise.all([
-          reviewsAPI.getThisMonthReviews(selectedApp),
-          reviewsAPI.getLast30DaysReviews(selectedApp),
-          reviewsAPI.getAverageRating(selectedApp)
-        ]);
+        setError(null);
 
-        console.log('API Responses for', selectedApp, ':', {
-          thisMonth: thisMonthRes.data,
-          last30Days: last30DaysRes.data,
-          avgRating: avgRatingRes.data
-        });
+        // Use the new homepage-stats API for comprehensive data
+        const response = await fetch(`http://localhost:8000/api/homepage-stats.php?app_name=${selectedApp}`);
+        const data = await response.json();
 
-        setStats({
-          thisMonth: thisMonthRes.data.count,
-          last30Days: last30DaysRes.data.count,
-          averageRating: avgRatingRes.data.average_rating
-        });
+        console.log('📊 Stats loaded for', selectedApp, 'using monitoring system');
+
+        if (data.success) {
+          setStats({
+            thisMonth: data.stats.this_month || 0,
+            last30Days: data.stats.last_30_days || 0,
+            averageRating: data.stats.avg_rating || 0.0
+          });
+        } else {
+          throw new Error(data.error || 'Failed to fetch stats');
+        }
         setError(null);
       } catch (err) {
-        setError('Failed to fetch statistics');
-        console.error('Error fetching stats:', err);
+        // Only show error if it's not a timeout from a previous request
+        if (!err.message?.includes('timeout') || selectedApp) {
+          setError(`Failed to fetch statistics: ${err.message || 'Unknown error'}`);
+          console.error('Error fetching stats for', selectedApp, ':', err.message);
+        }
       } finally {
         setLoading(false);
       }
     };
 
-    fetchStats();
+    // Debounce the API call
+    const timeoutId = setTimeout(fetchStats, 300);
+    return () => clearTimeout(timeoutId);
   }, [selectedApp, refreshKey]);
+
+  // Listen for fresh data updates
+  useEffect(() => {
+    const handleFreshData = async () => {
+      if (selectedApp && !isRefreshing) {
+        // Refresh stats when fresh data is available
+        fetchStats();
+      }
+    };
+
+    handleFreshData();
+  }, [isRefreshing, selectedApp]);
 
   if (loading && selectedApp) {
     return <div className="loading">Loading statistics...</div>;

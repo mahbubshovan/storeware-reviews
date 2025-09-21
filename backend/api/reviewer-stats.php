@@ -19,13 +19,15 @@ try {
     $conn = $dbManager->getConnection();
     
     // Get app statistics for the specified reviewer (all time data)
+    // Updated to use 'reviews' table (same as Access Tabbed) for consistency
     $stmt = $conn->prepare("
-        SELECT 
+        SELECT
             app_name,
             COUNT(*) as review_count
-        FROM access_reviews 
-        WHERE earned_by = :reviewer_name 
-        GROUP BY app_name 
+        FROM reviews
+        WHERE earned_by = :reviewer_name
+        AND is_active = TRUE
+        GROUP BY app_name
         ORDER BY review_count DESC, app_name ASC
     ");
     

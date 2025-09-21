@@ -6,7 +6,7 @@ require_once __DIR__ . '/../config/database.php';
  */
 class DatabaseManager {
     private $conn;
-    private $table_name = "reviews";
+    private $table_name = "review_repository";
 
     public function __construct() {
         $database = new Database();
@@ -98,7 +98,8 @@ class DatabaseManager {
 
         $query = "SELECT COUNT(*) as count FROM " . $this->table_name . "
                   WHERE review_date >= :first_of_month
-                  AND review_date <= CURDATE()";
+                  AND review_date <= CURDATE()
+                  AND is_active = TRUE";
 
         if ($app_name) {
             $query .= " AND app_name = :app_name";
@@ -120,7 +121,8 @@ class DatabaseManager {
      */
     public function getLast30DaysReviews($app_name = null) {
         $query = "SELECT COUNT(*) as count FROM " . $this->table_name . "
-                  WHERE review_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)";
+                  WHERE review_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                  AND is_active = TRUE";
 
         if ($app_name) {
             $query .= " AND app_name = :app_name";
@@ -169,10 +171,10 @@ class DatabaseManager {
         // 🔴 ALWAYS USE ACTUAL SCRAPED REVIEW DATA, NOT METADATA
         // This ensures average rating reflects the real scraped reviews
 
-        $query = "SELECT AVG(rating) as avg_rating FROM " . $this->table_name;
+        $query = "SELECT AVG(rating) as avg_rating FROM " . $this->table_name . " WHERE is_active = TRUE";
 
         if ($app_name) {
-            $query .= " WHERE app_name = :app_name";
+            $query .= " AND app_name = :app_name";
         }
 
         $stmt = $this->conn->prepare($query);
@@ -182,7 +184,7 @@ class DatabaseManager {
         $stmt->execute();
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        return round($result['avg_rating'], 1);
+        return $result['avg_rating'] ? round($result['avg_rating'], 1) : 0.0;
     }
 
     /**

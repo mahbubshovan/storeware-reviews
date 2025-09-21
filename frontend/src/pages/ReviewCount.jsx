@@ -49,19 +49,20 @@ const ReviewCount = () => {
   const [countryLoading, setCountryLoading] = useState(false);
   const [error, setError] = useState(null);
   const [countryError, setCountryError] = useState(null);
+  const [timeFilter, setTimeFilter] = useState('last_30_days'); // Default to last 30 days
 
   // Fetch available apps on component mount
   useEffect(() => {
     fetchApps();
   }, []);
 
-  // Fetch agent stats and country stats when selected app changes
+  // Fetch agent stats and country stats when selected app or filter changes
   useEffect(() => {
     if (selectedApp) {
       fetchAgentStats(selectedApp);
       fetchCountryStats(selectedApp);
     }
-  }, [selectedApp]);
+  }, [selectedApp, timeFilter]);
 
   const fetchApps = async () => {
     try {
@@ -83,10 +84,19 @@ const ReviewCount = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`http://localhost:8000/api/agent-stats.php?app_name=${encodeURIComponent(appName)}`);
+      // Add cache-busting for real-time updates
+      const cacheBust = `_t=${Date.now()}&_cache_bust=${Math.random()}`;
+      const response = await fetch(`http://localhost:8000/api/agent-stats.php?app_name=${encodeURIComponent(appName)}&filter=${timeFilter}&${cacheBust}`);
       if (!response.ok) throw new Error('Failed to fetch agent stats');
       const data = await response.json();
-      setAgentStats(data);
+
+      // Handle the case where there are reviews but no assignments
+      if (data.message === 'no_assignments') {
+        setAgentStats([]);
+        setError(`📊 ${data.info} You can assign reviews in the Access Review (Tabs) page.`);
+      } else {
+        setAgentStats(data);
+      }
     } catch (err) {
       setError('Failed to load agent statistics');
       console.error('Error fetching agent stats:', err);
@@ -99,7 +109,9 @@ const ReviewCount = () => {
     setCountryLoading(true);
     setCountryError(null);
     try {
-      const response = await fetch(`http://localhost:8000/api/country-stats.php?app_name=${encodeURIComponent(appName)}`);
+      // Add cache-busting for real-time updates
+      const cacheBust = `_t=${Date.now()}&_cache_bust=${Math.random()}`;
+      const response = await fetch(`http://localhost:8000/api/country-stats.php?app_name=${encodeURIComponent(appName)}&filter=${timeFilter}&${cacheBust}`);
       if (!response.ok) throw new Error('Failed to fetch country stats');
       const data = await response.json();
       if (data.success) {
@@ -212,7 +224,7 @@ const ReviewCount = () => {
               marginBottom: '15px',
               textShadow: '0 4px 8px rgba(0,0,0,0.3)'
             }}>
-              Review Count Dashboard
+              Appwise Reviews Dashboard
             </h1>
             <p style={{
               fontSize: '1.2rem',
@@ -221,7 +233,7 @@ const ReviewCount = () => {
               maxWidth: '600px',
               margin: '0 auto'
             }}>
-              Track and analyze support agent performance with comprehensive review statistics for the last 30 days
+              Track and analyze support agent performance with comprehensive review statistics
             </p>
           </div>
         </div>
@@ -321,6 +333,92 @@ const ReviewCount = () => {
                 </div>
               </div>
             )}
+
+            {/* Time Filter Options */}
+            <div style={{
+              marginBottom: '25px'
+            }}>
+              <div style={{
+                textAlign: 'center',
+                marginBottom: '15px'
+              }}>
+                <h4 style={{
+                  fontSize: '1.1rem',
+                  fontWeight: 'bold',
+                  color: '#333',
+                  marginBottom: '5px'
+                }}>
+                  📅 Time Period
+                </h4>
+                <p style={{
+                  fontSize: '0.85rem',
+                  color: '#666',
+                  margin: '0'
+                }}>
+                  Select data range
+                </p>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}>
+                <button
+                  onClick={() => setTimeFilter('last_30_days')}
+                  style={{
+                    padding: '12px 16px',
+                    border: timeFilter === 'last_30_days' ? '2px solid #667eea' : '2px solid #e2e8f0',
+                    borderRadius: '12px',
+                    background: timeFilter === 'last_30_days'
+                      ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                      : 'white',
+                    color: timeFilter === 'last_30_days' ? 'white' : '#333',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                    fontWeight: '500',
+                    transition: 'all 0.3s ease',
+                    textAlign: 'left'
+                  }}
+                >
+                  📊 Last 30 Days
+                  <div style={{
+                    fontSize: '0.75rem',
+                    opacity: 0.8,
+                    marginTop: '2px'
+                  }}>
+                    Recent performance
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => setTimeFilter('all_time')}
+                  style={{
+                    padding: '12px 16px',
+                    border: timeFilter === 'all_time' ? '2px solid #667eea' : '2px solid #e2e8f0',
+                    borderRadius: '12px',
+                    background: timeFilter === 'all_time'
+                      ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                      : 'white',
+                    color: timeFilter === 'all_time' ? 'white' : '#333',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                    fontWeight: '500',
+                    transition: 'all 0.3s ease',
+                    textAlign: 'left'
+                  }}
+                >
+                  🏆 All Time
+                  <div style={{
+                    fontSize: '0.75rem',
+                    opacity: 0.8,
+                    marginTop: '2px'
+                  }}>
+                    Complete history
+                  </div>
+                </button>
+              </div>
+            </div>
 
             {/* App List - Updated for consistent styling */}
             <div className="app-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -432,7 +530,7 @@ const ReviewCount = () => {
               Support Agent Statistics
               {selectedApp && (
                 <span style={{ fontSize: '1rem', fontWeight: 'normal', color: '#666' }}>
-                  {' '}for {formatAppName(selectedApp)} (Last 30 Days)
+                  {' '}for {formatAppName(selectedApp)} ({timeFilter === 'last_30_days' ? 'Last 30 Days' : 'All Time'})
                 </span>
               )}
             </h3>
@@ -697,7 +795,7 @@ const ReviewCount = () => {
                     color: '#666',
                     margin: '0'
                   }}>
-                    Review distribution by country for {formatAppName(selectedApp)} (Last 30 Days)
+                    Review distribution by country for {formatAppName(selectedApp)} ({timeFilter === 'last_30_days' ? 'Last 30 Days' : 'All Time'})
                   </p>
                 </div>
 
@@ -769,7 +867,7 @@ const ReviewCount = () => {
                       maxWidth: '400px',
                       margin: '0 auto'
                     }}>
-                      No country-specific review data found for <strong>{formatAppName(selectedApp)}</strong> in the last 30 days.
+                      No country-specific review data found for <strong>{formatAppName(selectedApp)}</strong> {timeFilter === 'last_30_days' ? 'in the last 30 days' : 'in all time'}.
                     </div>
                   </div>
                 )}

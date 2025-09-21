@@ -1,42 +1,25 @@
 import { useState, useEffect } from 'react'
 import './App.css'
-import AppSelector from './components/AppSelector'
-import SummaryStats from './components/SummaryStats'
-import ReviewDistribution from './components/ReviewDistribution'
-import LatestReviews from './components/LatestReviews'
-import Access from './pages/Access'
+import Analytics from './components/Analytics'
+import AccessTabbed from './pages/AccessTabbed'
 import ReviewCount from './pages/ReviewCount'
 import ReviewCredit from './pages/ReviewCredit'
 
 function App() {
-  const [selectedApp, setSelectedApp] = useState(''); // No default selection
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [currentView, setCurrentView] = useState('analytics'); // 'analytics', 'access', 'review-count', or 'review-credit'
+  const [currentView, setCurrentView] = useState('analytics'); // 'analytics', 'access-tabbed', 'appwise-reviews', or 'agent-reviews'
 
-  console.log('App rendering with:', { selectedApp, currentView, refreshKey });
+  console.log('App rendering with currentView:', currentView);
 
   // Update document title based on current view
   useEffect(() => {
     const titles = {
       'analytics': 'Analytics Dashboard - Shopify App Review Analytics',
-      'access': 'Access Reviews - Shopify App Review Analytics',
-      'review-count': 'Review Count - Shopify App Review Analytics',
-      'review-credit': 'Review Credit - Shopify App Review Analytics'
+      'access-tabbed': 'Access Reviews - Shopify App Review Analytics',
+      'appwise-reviews': 'Appwise Reviews - Shopify App Review Analytics',
+      'agent-reviews': 'Agent Reviews - Shopify App Review Analytics'
     };
     document.title = titles[currentView] || 'Shopify App Review Analytics';
   }, [currentView]);
-
-  const handleAppSelect = (appName) => {
-    setSelectedApp(appName);
-    // Force refresh when switching apps to clear any cached data
-    setRefreshKey(prev => prev + 1);
-  };
-
-  const handleScrapeComplete = (appName, scrapedCount) => {
-    console.log(`Scraping completed for ${appName}: ${scrapedCount} new reviews`);
-    // Trigger refresh of all components
-    setRefreshKey(prev => prev + 1);
-  };
 
   return (
     <div className="app">
@@ -59,90 +42,66 @@ function App() {
               cursor: 'pointer'
             }}
           >
-            Analytics Dashboard
+            Analytics
           </button>
           <button
-            className={`nav-tab ${currentView === 'access' ? 'active' : ''}`}
-            onClick={() => setCurrentView('access')}
+            className={`nav-tab ${currentView === 'access-tabbed' ? 'active' : ''}`}
+            onClick={() => setCurrentView('access-tabbed')}
             style={{
               padding: '10px 20px',
               marginRight: '10px',
               border: 'none',
               borderRadius: '5px',
-              backgroundColor: currentView === 'access' ? '#007bff' : '#f8f9fa',
-              color: currentView === 'access' ? 'white' : '#333',
+              backgroundColor: currentView === 'access-tabbed' ? '#007bff' : '#f8f9fa',
+              color: currentView === 'access-tabbed' ? 'white' : '#333',
               cursor: 'pointer'
             }}
           >
             Access Reviews
           </button>
           <button
-            className={`nav-tab ${currentView === 'review-count' ? 'active' : ''}`}
-            onClick={() => setCurrentView('review-count')}
+            className={`nav-tab ${currentView === 'appwise-reviews' ? 'active' : ''}`}
+            onClick={() => setCurrentView('appwise-reviews')}
             style={{
               padding: '10px 20px',
               marginRight: '10px',
               border: 'none',
               borderRadius: '5px',
-              backgroundColor: currentView === 'review-count' ? '#28a745' : '#f8f9fa',
-              color: currentView === 'review-count' ? 'white' : '#333',
+              backgroundColor: currentView === 'appwise-reviews' ? '#28a745' : '#f8f9fa',
+              color: currentView === 'appwise-reviews' ? 'white' : '#333',
               cursor: 'pointer'
             }}
           >
-            Review Count
+            Appwise Reviews
           </button>
           <button
-            className={`nav-tab ${currentView === 'review-credit' ? 'active' : ''}`}
-            onClick={() => setCurrentView('review-credit')}
+            className={`nav-tab ${currentView === 'agent-reviews' ? 'active' : ''}`}
+            onClick={() => setCurrentView('agent-reviews')}
             style={{
               padding: '10px 20px',
               border: 'none',
               borderRadius: '5px',
-              backgroundColor: currentView === 'review-credit' ? '#17a2b8' : '#f8f9fa',
-              color: currentView === 'review-credit' ? 'white' : '#333',
+              backgroundColor: currentView === 'agent-reviews' ? '#17a2b8' : '#f8f9fa',
+              color: currentView === 'agent-reviews' ? 'white' : '#333',
               cursor: 'pointer'
             }}
           >
-            Review Credit
+            Agent Reviews
           </button>
         </div>
       </header>
 
       <main className="app-main">
         {currentView === 'analytics' ? (
-          <>
-            <AppSelector
-              selectedApp={selectedApp}
-              onAppSelect={handleAppSelect}
-              onScrapeComplete={handleScrapeComplete}
-            />
-
-            <SummaryStats
-              selectedApp={selectedApp}
-              refreshKey={refreshKey}
-            />
-
-            {selectedApp && (
-              <>
-                <ReviewDistribution
-                  selectedApp={selectedApp}
-                  refreshKey={refreshKey}
-                />
-                <LatestReviews
-                  selectedApp={selectedApp}
-                  refreshKey={refreshKey}
-                />
-              </>
-            )}
-          </>
-        ) : currentView === 'access' ? (
-          <Access />
-        ) : currentView === 'review-count' ? (
+          <Analytics />
+        ) : currentView === 'access-tabbed' ? (
+          <AccessTabbed />
+        ) : currentView === 'appwise-reviews' ? (
           <ReviewCount />
-        ) : currentView === 'review-credit' ? (
+        ) : currentView === 'agent-reviews' ? (
           <ReviewCredit />
         ) : (
-          <Access />
+          <Analytics />
         )}
       </main>
     </div>

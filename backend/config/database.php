@@ -17,6 +17,7 @@ class Database {
         $this->db_name = $_ENV['DB_NAME'] ?? getenv('DB_NAME') ?: 'shopify_reviews';
         $this->username = $_ENV['DB_USER'] ?? getenv('DB_USER') ?: 'root';
         $this->password = $_ENV['DB_PASS'] ?? getenv('DB_PASS') ?: '';
+        $this->port = $_ENV['DB_PORT'] ?? getenv('DB_PORT') ?: '3306';
     }
 
     public function getConnection() {

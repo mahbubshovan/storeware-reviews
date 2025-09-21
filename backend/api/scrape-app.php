@@ -7,7 +7,7 @@ ini_set('max_execution_time', 120);
 ob_start();
 
 require_once __DIR__ . '/../config/cors.php';
-require_once __DIR__ . '/../scraper/UniversalLiveScraper.php';
+require_once __DIR__ . '/../scraper/EnhancedUniversalScraper.php';
 
 // Only allow POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -45,7 +45,7 @@ try {
         'Vidify' => 'vidify',
         'TrustSync' => 'customer-review-app',
         'EasyFlow' => 'product-options-4',
-        'BetterDocs FAQ' => 'betterdocs-knowledgebase'
+        'BetterDocs FAQ Knowledge Base' => 'betterdocs-knowledgebase'
     ];
 
     // Get the Shopify slug for the app
@@ -64,39 +64,82 @@ try {
 
     $appSlug = $appSlugs[$appName];
 
-    // Create universal live scraper - NO FALLBACKS, NO MOCK DATA
-    $scraper = new UniversalLiveScraper();
-    $result = $scraper->scrapeApp($appSlug, $appName);
+    // Create enhanced universal scraper with rate limiting
+    $scraper = new EnhancedUniversalScraper();
+    $result = $scraper->scrapeAppWithRateLimit($appSlug, $appName);
 
-    $scrapedCount = $result['count'] ?? 0;
-
-    if ($result['success']) {
-        // Trigger access reviews sync after successful scraping
-        try {
-            require_once __DIR__ . '/../utils/AccessReviewsSync.php';
-            $accessSync = new AccessReviewsSync();
-            $accessSync->syncAccessReviews();
-        } catch (Exception $syncError) {
-            error_log("Access reviews sync failed: " . $syncError->getMessage());
-        }
-    }
-
-    // Clear any unwanted output from scraping and sync
+    // Clear any unwanted output from scraping
     ob_clean();
 
-    if ($result['success']) {
-        echo json_encode([
+    if ($result && !empty($result['reviews'])) {
+        $scrapedCount = count($result['reviews']);
+        $isRateLimited = $result['rate_limited'] ?? false;
+        $source = $result['source'] ?? 'unknown';
+
+        // Only trigger sync if we got fresh data (not cached/rate limited)
+        if (!$isRateLimited && $source !== 'cached_data') {
+            try {
+                // Step 1: Perform smart sync to compare with Access Review Tab data
+                $smartSyncUrl = 'http://localhost:8000/api/smart-sync-analytics.php';
+                $smartSyncData = json_encode(['app_name' => $appName]);
+
+                $context = stream_context_create([
+                    'http' => [
+                        'method' => 'POST',
+                        'header' => 'Content-Type: application/json',
+                        'content' => $smartSyncData,
+                        'timeout' => 30
+                    ]
+                ]);
+
+                $smartSyncResponse = @file_get_contents($smartSyncUrl, false, $context);
+                $smartSyncResult = $smartSyncResponse ? json_decode($smartSyncResponse, true) : null;
+
+                // Log smart sync results
+                if ($smartSyncResult && $smartSyncResult['success']) {
+                    $stats = $smartSyncResult['stats'];
+                    error_log("Smart sync for {$appName}: {$stats['total_found']} found, {$stats['duplicates_skipped']} skipped, {$stats['new_added']} new");
+                } else {
+                    error_log("Smart sync failed for {$appName}: " . ($smartSyncResult['error'] ?? 'Unknown error'));
+                }
+
+                // Step 2: Regular access reviews sync (this will add the new reviews)
+                require_once __DIR__ . '/../utils/AccessReviewsSync.php';
+                $accessSync = new AccessReviewsSync();
+                $accessSync->syncAccessReviews();
+
+            } catch (Exception $syncError) {
+                error_log("Access reviews sync failed: " . $syncError->getMessage());
+            }
+        }
+
+        // Prepare response with smart sync info
+        $response = [
             'success' => true,
-            'message' => $result['message'],
-            'scraped_count' => $scrapedCount
-        ]);
+            'message' => $isRateLimited ?
+                "Rate limited - returned cached data ($scrapedCount reviews)" :
+                "Successfully scraped $scrapedCount reviews",
+            'scraped_count' => $scrapedCount,
+            'rate_limited' => $isRateLimited,
+            'source' => $source,
+            'app_name' => $appName
+        ];
+
+        // Add smart sync results if available
+        if (isset($smartSyncResult) && $smartSyncResult && $smartSyncResult['success']) {
+            $response['smart_sync'] = $smartSyncResult['stats'];
+            $response['message'] .= " | Smart sync: {$smartSyncResult['stats']['new_added']} new reviews added to Access Reviews";
+        }
+
+        echo json_encode($response);
     } else {
-        // If live scraping fails, return empty results - NO MOCK DATA
+        // If scraping fails completely
         echo json_encode([
             'success' => false,
-            'message' => $result['message'],
+            'message' => $result['error'] ?? 'Scraping failed - no data available',
             'scraped_count' => 0,
-            'note' => 'Live scraping failed - no fallback data provided'
+            'source' => $result['source'] ?? 'error',
+            'app_name' => $appName
         ]);
     }
     

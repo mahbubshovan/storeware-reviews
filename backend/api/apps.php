@@ -6,11 +6,15 @@ try {
     $dbManager = new DatabaseManager();
     $conn = $dbManager->getConnection();
     
-    // Get distinct app names from the access_reviews table
+    // Get distinct app names from the reviews table (only apps we're actively tracking)
+    // Exclude BetterDocs FAQ and Vitals as requested
     $stmt = $conn->prepare("
-        SELECT DISTINCT app_name 
-        FROM access_reviews 
-        WHERE app_name IS NOT NULL 
+        SELECT DISTINCT app_name
+        FROM reviews
+        WHERE app_name IS NOT NULL
+        AND is_active = TRUE
+        AND app_name NOT IN ('BetterDocs FAQ', 'Vitals')
+        AND app_name IN ('StoreSEO', 'StoreFAQ', 'EasyFlow', 'TrustSync', 'Vidify', 'BetterDocs FAQ Knowledge Base')
         ORDER BY app_name
     ");
     $stmt->execute();

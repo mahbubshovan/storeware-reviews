@@ -20,23 +20,35 @@ const ReviewDistribution = ({ selectedApp, refreshKey }) => {
       // Don't fetch if no app is selected
       if (!selectedApp) {
         setLoading(false);
+        setError(null);
         return;
       }
 
       try {
         setLoading(true);
+        setError(null);
+
+        // Add a small delay to prevent rapid-fire requests
+        await new Promise(resolve => setTimeout(resolve, 150));
+
         const response = await reviewsAPI.getReviewDistribution(selectedApp);
         setDistribution(response.data);
         setError(null);
+        console.log('📈 Distribution loaded for', selectedApp);
       } catch (err) {
-        setError('Failed to fetch review distribution');
-        console.error('Error fetching distribution:', err);
+        // Only show error if it's not a timeout from a previous request
+        if (!err.message?.includes('timeout') || selectedApp) {
+          setError(`Failed to fetch review distribution: ${err.message || 'Unknown error'}`);
+          console.error('Error fetching distribution for', selectedApp, ':', err.message);
+        }
       } finally {
         setLoading(false);
       }
     };
 
-    fetchDistribution();
+    // Debounce the API call
+    const timeoutId = setTimeout(fetchDistribution, 400);
+    return () => clearTimeout(timeoutId);
   }, [selectedApp, refreshKey]);
 
   if (loading) {

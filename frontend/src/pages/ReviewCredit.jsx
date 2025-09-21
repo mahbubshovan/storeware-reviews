@@ -123,7 +123,7 @@ const ReviewCredit = () => {
               marginBottom: '15px',
               textShadow: '0 4px 8px rgba(0,0,0,0.3)'
             }}>
-              Review Credit Dashboard
+              Agent Reviews Dashboard
             </h1>
             <p style={{
               fontSize: '1.2rem',

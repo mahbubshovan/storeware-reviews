@@ -1,0 +1,44 @@
+{
+    "timestamp": "2025-09-17 10:18:50",
+    "results": {
+        "StoreSEO": {
+            "this_month": 10,
+            "last_30_days": 26,
+            "total_reviews": 517,
+            "average_rating": 4.9
+        },
+        "StoreFAQ": {
+            "this_month": 12,
+            "last_30_days": 24,
+            "total_reviews": 96,
+            "average_rating": 4.9
+        },
+        "EasyFlow": {
+            "this_month": 10,
+            "last_30_days": 25,
+            "total_reviews": 312,
+            "average_rating": 5
+        },
+        "BetterDocs FAQ": {
+            "this_month": 0,
+            "last_30_days": 0,
+            "total_reviews": 0,
+            "average_rating": 0
+        },
+        "Vidify": {
+            "this_month": 0,
+            "last_30_days": 0,
+            "total_reviews": 8,
+            "average_rating": 5
+        },
+        "TrustSync": {
+            "this_month": 2,
+            "last_30_days": 2,
+            "total_reviews": 40,
+            "average_rating": 5
+        }
+    },
+    "verification_status": "COMPLETED",
+    "primary_data_source": "reviews_table",
+    "calculation_method": "DateCalculations_class"
+}

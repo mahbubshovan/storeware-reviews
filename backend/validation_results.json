@@ -1,0 +1,240 @@
+{
+    "database": {
+        "StoreSEO": {
+            "app_name": "StoreSEO",
+            "tables": {
+                "reviews": {
+                    "this_month": 10,
+                    "last_30_days": 26
+                },
+                "access_reviews": {
+                    "this_month": 4,
+                    "last_30_days": 11
+                },
+                "review_repository": {
+                    "this_month": 8,
+                    "last_30_days": 20
+                }
+            },
+            "consistency_issues": [
+                "This month mismatch: reviews(10) vs access_reviews(4)",
+                "Last 30 days mismatch: reviews(26) vs access_reviews(11)"
+            ]
+        },
+        "StoreFAQ": {
+            "app_name": "StoreFAQ",
+            "tables": {
+                "reviews": {
+                    "this_month": 12,
+                    "last_30_days": 24
+                },
+                "access_reviews": {
+                    "this_month": 6,
+                    "last_30_days": 12
+                },
+                "review_repository": {
+                    "this_month": 8,
+                    "last_30_days": 18
+                }
+            },
+            "consistency_issues": [
+                "This month mismatch: reviews(12) vs access_reviews(6)",
+                "Last 30 days mismatch: reviews(24) vs access_reviews(12)"
+            ]
+        },
+        "EasyFlow": {
+            "app_name": "EasyFlow",
+            "tables": {
+                "reviews": {
+                    "this_month": 10,
+                    "last_30_days": 25
+                },
+                "access_reviews": {
+                    "this_month": 4,
+                    "last_30_days": 15
+                },
+                "review_repository": {
+                    "this_month": 5,
+                    "last_30_days": 20
+                }
+            },
+            "consistency_issues": [
+                "This month mismatch: reviews(10) vs access_reviews(4)",
+                "Last 30 days mismatch: reviews(25) vs access_reviews(15)"
+            ]
+        },
+        "BetterDocs FAQ": {
+            "app_name": "BetterDocs FAQ",
+            "tables": {
+                "reviews": {
+                    "this_month": 0,
+                    "last_30_days": 0
+                },
+                "access_reviews": {
+                    "this_month": 0,
+                    "last_30_days": 0
+                },
+                "review_repository": {
+                    "this_month": 0,
+                    "last_30_days": 2
+                }
+            },
+            "consistency_issues": []
+        },
+        "Vidify": {
+            "app_name": "Vidify",
+            "tables": {
+                "reviews": {
+                    "this_month": 0,
+                    "last_30_days": 0
+                },
+                "access_reviews": {
+                    "this_month": 0,
+                    "last_30_days": 0
+                },
+                "review_repository": {
+                    "this_month": 0,
+                    "last_30_days": 0
+                }
+            },
+            "consistency_issues": []
+        },
+        "TrustSync": {
+            "app_name": "TrustSync",
+            "tables": {
+                "reviews": {
+                    "this_month": 2,
+                    "last_30_days": 2
+                },
+                "access_reviews": {
+                    "this_month": 1,
+                    "last_30_days": 1
+                },
+                "review_repository": {
+                    "this_month": 0,
+                    "last_30_days": 0
+                }
+            },
+            "consistency_issues": [
+                "This month mismatch: reviews(2) vs access_reviews(1)",
+                "Last 30 days mismatch: reviews(2) vs access_reviews(1)"
+            ]
+        }
+    },
+    "api": {
+        "StoreSEO": {
+            "app_name": "StoreSEO",
+            "endpoints": {
+                "this_month": {
+                    "success": false,
+                    "count": 0,
+                    "source": "unknown"
+                },
+                "last_30_days": {
+                    "success": false,
+                    "count": 0,
+                    "source": "unknown"
+                }
+            },
+            "consistency_with_db": [
+                "This month API\/DB mismatch: API(0) vs DB(10)",
+                "Last 30 days API\/DB mismatch: API(0) vs DB(26)"
+            ]
+        },
+        "StoreFAQ": {
+            "app_name": "StoreFAQ",
+            "endpoints": {
+                "this_month": {
+                    "success": false,
+                    "count": 0,
+                    "source": "unknown"
+                },
+                "last_30_days": {
+                    "success": false,
+                    "count": 0,
+                    "source": "unknown"
+                }
+            },
+            "consistency_with_db": [
+                "This month API\/DB mismatch: API(0) vs DB(12)",
+                "Last 30 days API\/DB mismatch: API(0) vs DB(24)"
+            ]
+        },
+        "EasyFlow": {
+            "app_name": "EasyFlow",
+            "endpoints": {
+                "this_month": {
+                    "success": false,
+                    "count": 0,
+                    "source": "unknown"
+                },
+                "last_30_days": {
+                    "success": false,
+                    "count": 0,
+                    "source": "unknown"
+                }
+            },
+            "consistency_with_db": [
+                "This month API\/DB mismatch: API(0) vs DB(10)",
+                "Last 30 days API\/DB mismatch: API(0) vs DB(25)"
+            ]
+        },
+        "BetterDocs FAQ": {
+            "app_name": "BetterDocs FAQ",
+            "endpoints": {
+                "this_month": {
+                    "success": false,
+                    "count": 0,
+                    "source": "unknown"
+                },
+                "last_30_days": {
+                    "success": false,
+                    "count": 0,
+                    "source": "unknown"
+                }
+            },
+            "consistency_with_db": []
+        },
+        "Vidify": {
+            "app_name": "Vidify",
+            "endpoints": {
+                "this_month": {
+                    "success": false,
+                    "count": 0,
+                    "source": "unknown"
+                },
+                "last_30_days": {
+                    "success": false,
+                    "count": 0,
+                    "source": "unknown"
+                }
+            },
+            "consistency_with_db": []
+        },
+        "TrustSync": {
+            "app_name": "TrustSync",
+            "endpoints": {
+                "this_month": {
+                    "success": false,
+                    "count": 0,
+                    "source": "unknown"
+                },
+                "last_30_days": {
+                    "success": false,
+                    "count": 0,
+                    "source": "unknown"
+                }
+            },
+            "consistency_with_db": [
+                "This month API\/DB mismatch: API(0) vs DB(2)",
+                "Last 30 days API\/DB mismatch: API(0) vs DB(2)"
+            ]
+        }
+    },
+    "date_validation": {
+        "this_month_match": true,
+        "last_30_days_match": true,
+        "this_month": 10,
+        "last_30_days": 26
+    }
+}
