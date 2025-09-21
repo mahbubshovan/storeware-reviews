@@ -21,7 +21,7 @@ const ReviewCredit = () => {
 
   const fetchReviewers = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/reviewers.php');
+      const response = await fetch('/backend/api/reviewers.php');
       if (!response.ok) throw new Error('Failed to fetch reviewers');
       const data = await response.json();
       setReviewers(data);
@@ -39,7 +39,7 @@ const ReviewCredit = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`http://localhost:8000/api/reviewer-stats.php?reviewer_name=${encodeURIComponent(reviewerName)}`);
+      const response = await fetch(`/backend/api/reviewer-stats.php?reviewer_name=${encodeURIComponent(reviewerName)}`);
       if (!response.ok) throw new Error('Failed to fetch reviewer stats');
       const data = await response.json();
       setReviewerStats(data);

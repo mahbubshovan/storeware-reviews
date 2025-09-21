@@ -48,7 +48,7 @@ const AccessComplete = () => {
       setError(null);
 
       const params = new URLSearchParams(filters);
-      const response = await fetch(`http://localhost:8000/api/access-reviews-complete.php?${params}`);
+      const response = await fetch(`/backend/api/access-reviews-complete.php?${params}`);
       const data = await response.json();
 
       if (data.success) {
@@ -101,7 +101,7 @@ const AccessComplete = () => {
 
   const saveEdit = async (reviewId) => {
     try {
-      const response = await fetch('http://localhost:8000/api/access-reviews-complete.php', {
+      const response = await fetch('/backend/api/access-reviews-complete.php', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

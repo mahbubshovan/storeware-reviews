@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8000/api'; // Force localhost for debugging
+// Use relative path for single domain deployment
+const API_BASE_URL = '/backend/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

@@ -11,7 +11,7 @@ const MonitoringControls = ({ selectedApp, onMonitoringComplete }) => {
     setResults(null);
 
     try {
-      const response = await fetch('http://localhost:8000/api/run-monitoring.php', {
+      const response = await fetch('/backend/api/run-monitoring.php', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

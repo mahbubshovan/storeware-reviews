@@ -66,7 +66,7 @@ const ReviewCount = () => {
 
   const fetchApps = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/apps.php');
+      const response = await fetch('/backend/api/apps.php');
       if (!response.ok) throw new Error('Failed to fetch apps');
       const data = await response.json();
       setApps(data);
@@ -86,7 +86,7 @@ const ReviewCount = () => {
     try {
       // Add cache-busting for real-time updates
       const cacheBust = `_t=${Date.now()}&_cache_bust=${Math.random()}`;
-      const response = await fetch(`http://localhost:8000/api/agent-stats.php?app_name=${encodeURIComponent(appName)}&filter=${timeFilter}&${cacheBust}`);
+      const response = await fetch(`/backend/api/agent-stats.php?app_name=${encodeURIComponent(appName)}&filter=${timeFilter}&${cacheBust}`);
       if (!response.ok) throw new Error('Failed to fetch agent stats');
       const data = await response.json();
 
@@ -111,7 +111,7 @@ const ReviewCount = () => {
     try {
       // Add cache-busting for real-time updates
       const cacheBust = `_t=${Date.now()}&_cache_bust=${Math.random()}`;
-      const response = await fetch(`http://localhost:8000/api/country-stats.php?app_name=${encodeURIComponent(appName)}&filter=${timeFilter}&${cacheBust}`);
+      const response = await fetch(`/backend/api/country-stats.php?app_name=${encodeURIComponent(appName)}&filter=${timeFilter}&${cacheBust}`);
       if (!response.ok) throw new Error('Failed to fetch country stats');
       const data = await response.json();
       if (data.success) {

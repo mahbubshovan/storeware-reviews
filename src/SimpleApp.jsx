@@ -15,7 +15,7 @@ function SimpleApp() {
     const fetchApps = async () => {
       try {
         console.log('Fetching available apps...');
-        const response = await fetch('http://localhost:8000/api/available-apps.php');
+        const response = await fetch('/backend/api/available-apps.php');
         const data = await response.json();
         console.log('Apps data:', data);
         
@@ -48,12 +48,12 @@ function SimpleApp() {
         console.log('Fetching data for:', selectedApp);
 
         // Fetch stats
-        const statsResponse = await fetch(`http://localhost:8000/api/this-month-reviews.php?app_name=${selectedApp}`);
+        const statsResponse = await fetch(`/backend/api/this-month-reviews.php?app_name=${selectedApp}`);
         const statsData = await statsResponse.json();
         console.log('Stats data:', statsData);
 
         // Fetch rating distribution
-        const distResponse = await fetch(`http://localhost:8000/api/review-distribution.php?app_name=${selectedApp}`);
+        const distResponse = await fetch(`/backend/api/review-distribution.php?app_name=${selectedApp}`);
         const distData = await distResponse.json();
         console.log('Distribution data:', distData);
 

@@ -31,7 +31,7 @@ const Analytics = () => {
 
       // Step 2: Fetching review data
       setLoadingStep(2);
-      const response = await fetch(`http://localhost:8000/api/enhanced-analytics.php?app=${encodeURIComponent(appName)}`);
+      const response = await fetch(`/backend/api/enhanced-analytics.php?app=${encodeURIComponent(appName)}`);
 
       // Step 3: Processing analytics
       setLoadingStep(3);
@@ -63,7 +63,7 @@ const Analytics = () => {
                    filter === 'all' ? 50 :
                    filter === 'custom' ? 25 : 15;
 
-      let url = `http://localhost:8000/api/access-reviews-cached.php?app=${encodeURIComponent(appName)}&page=1&limit=${limit}&_t=${Date.now()}&_cache_bust=${Math.random()}`;
+      let url = `/backend/api/access-reviews-cached.php?app=${encodeURIComponent(appName)}&page=1&limit=${limit}&_t=${Date.now()}&_cache_bust=${Math.random()}`;
 
       if (filter === 'custom' && customDateRange.start && customDateRange.end) {
         url += `&start_date=${customDateRange.start}&end_date=${customDateRange.end}`;
@@ -89,7 +89,7 @@ const Analytics = () => {
 
     try {
       // Fetch latest 5 reviews without any filters
-      const url = `http://localhost:8000/api/access-reviews-cached.php?app=${encodeURIComponent(appName)}&page=1&limit=5`;
+      const url = `/backend/api/access-reviews-cached.php?app=${encodeURIComponent(appName)}&page=1&limit=5`;
 
       const response = await fetch(url);
       const data = await response.json();

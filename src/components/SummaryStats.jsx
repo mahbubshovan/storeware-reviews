@@ -33,7 +33,7 @@ const SummaryStats = ({ selectedApp, refreshKey }) => {
         setError(null);
 
         // Use the new homepage-stats API for comprehensive data
-        const response = await fetch(`http://localhost:8000/api/homepage-stats.php?app_name=${selectedApp}`);
+        const response = await fetch(`/backend/api/homepage-stats.php?app_name=${selectedApp}`);
         const data = await response.json();
 
         console.log('📊 Stats loaded for', selectedApp, 'using monitoring system');

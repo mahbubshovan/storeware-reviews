@@ -12,7 +12,7 @@ function MinimalApp() {
   useEffect(() => {
     const fetchApps = async () => {
       try {
-        const response = await fetch('http://localhost:8000/api/available-apps.php');
+        const response = await fetch('/backend/api/available-apps.php');
         const data = await response.json();
         if (data.success) {
           setApps(data.apps);
@@ -35,9 +35,9 @@ function MinimalApp() {
         setLoading(true);
         
         const [thisMonthRes, last30DaysRes, avgRatingRes] = await Promise.all([
-          fetch(`http://localhost:8000/api/this-month-reviews.php?app_name=${selectedApp}`),
-          fetch(`http://localhost:8000/api/last-30-days-reviews.php?app_name=${selectedApp}`),
-          fetch(`http://localhost:8000/api/average-rating.php?app_name=${selectedApp}`)
+          fetch(`/backend/api/this-month-reviews.php?app_name=${selectedApp}`),
+          fetch(`/backend/api/last-30-days-reviews.php?app_name=${selectedApp}`),
+          fetch(`/backend/api/average-rating.php?app_name=${selectedApp}`)
         ]);
 
         const [thisMonth, last30Days, avgRating] = await Promise.all([

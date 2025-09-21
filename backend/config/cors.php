@@ -5,13 +5,21 @@
 
 // Production CORS settings
 $allowedOrigins = [
-    'http://localhost:5173', // Development
+    'http://localhost:5173', // Development (Vite dev server)
     'http://localhost:5174', // Development (alternative port)
     'http://localhost:3000',  // Alternative development
+    'http://localhost:4173',  // Vite preview server
     'https://shopify-review.vercel.app', // Vercel frontend with custom name
     'https://shopify-review-git-main.vercel.app', // Vercel git branch domain
     'https://shopify-review.railway.app', // Railway backend domain
 ];
+
+// For single domain deployment, allow same-origin requests
+$currentHost = $_SERVER['HTTP_HOST'] ?? '';
+if ($currentHost) {
+    $allowedOrigins[] = "https://$currentHost";
+    $allowedOrigins[] = "http://$currentHost";
+}
 
 // Allow any Railway backend domain for development
 if (isset($_SERVER['HTTP_ORIGIN'])) {

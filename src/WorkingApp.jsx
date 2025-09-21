@@ -12,7 +12,7 @@ function WorkingApp() {
   useEffect(() => {
     const fetchApps = async () => {
       try {
-        const response = await fetch('http://localhost:8000/api/available-apps.php');
+        const response = await fetch('/backend/api/available-apps.php');
         const data = await response.json();
         if (data.success) {
           setApps(data.apps);
@@ -42,7 +42,7 @@ function WorkingApp() {
 
         // Fetch stats
         console.log('Fetching stats...');
-        const statsRes = await fetch(`http://localhost:8000/api/this-month-reviews.php?app_name=${selectedApp}`);
+        const statsRes = await fetch(`/backend/api/this-month-reviews.php?app_name=${selectedApp}`);
         console.log('Stats response status:', statsRes.status);
 
         if (!statsRes.ok) {
@@ -54,7 +54,7 @@ function WorkingApp() {
 
         // Fetch distribution
         console.log('Fetching distribution...');
-        const distRes = await fetch(`http://localhost:8000/api/review-distribution.php?app_name=${selectedApp}`);
+        const distRes = await fetch(`/backend/api/review-distribution.php?app_name=${selectedApp}`);
         console.log('Distribution response status:', distRes.status);
 
         if (!distRes.ok) {

@@ -10,7 +10,7 @@ const SimpleReport = () => {
     setError(null)
 
     try {
-      const response = await fetch('http://localhost:8000/api/simple_report.php')
+      const response = await fetch('/backend/api/simple_report.php')
       const data = await response.json()
 
       if (data.success) {

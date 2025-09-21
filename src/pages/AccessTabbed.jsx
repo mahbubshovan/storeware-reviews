@@ -60,7 +60,7 @@ const AccessTabbed = () => {
     try {
       // Use the new cached API for fast tab switching and accurate counts
       const response = await fetch(
-        `http://localhost:8000/api/access-reviews-cached.php?app=${encodeURIComponent(appName)}&page=${page}&limit=15&_t=${Date.now()}&_cache_bust=${Math.random()}`
+        `/backend/api/access-reviews-cached.php?app=${encodeURIComponent(appName)}&page=${page}&limit=15&_t=${Date.now()}&_cache_bust=${Math.random()}`
       );
 
       if (!response.ok) {
@@ -110,7 +110,7 @@ const AccessTabbed = () => {
 
   const handleEditSave = async (reviewId) => {
     try {
-      const response = await fetch('http://localhost:8000/api/access-reviews-tabbed.php', {
+      const response = await fetch('/backend/api/access-reviews-tabbed.php', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

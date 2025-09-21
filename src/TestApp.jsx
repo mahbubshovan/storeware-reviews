@@ -31,7 +31,7 @@ function TestApp() {
             <button 
               onClick={async () => {
                 try {
-                  const response = await fetch(`http://localhost:8000/api/this-month-reviews.php?app_name=${selectedApp}`);
+                  const response = await fetch(`/backend/api/this-month-reviews.php?app_name=${selectedApp}`);
                   const data = await response.json();
                   console.log('API Response:', data);
                   alert(`API Response: ${JSON.stringify(data)}`);
