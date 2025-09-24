@@ -1,8 +1,10 @@
 <?php
 // FINAL FIX - Your exact real data
+require_once __DIR__ . '/config/database.php';
+
 try {
-    $pdo = new PDO("mysql:host=localhost;dbname=shopify_reviews", 'root', '');
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $database = new Database();
+    $pdo = $database->getConnection();
     
     // Step 1: Clear all existing data
     $pdo->exec("DELETE FROM access_reviews");

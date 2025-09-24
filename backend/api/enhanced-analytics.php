@@ -26,9 +26,10 @@ class EnhancedAnalytics {
     
     public function __construct() {
         try {
-            $this->pdo = new PDO("mysql:host=localhost;dbname=shopify_reviews", 'root', '');
-            $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        } catch (PDOException $e) {
+            require_once __DIR__ . '/../config/database.php';
+            $database = new Database();
+            $this->pdo = $database->getConnection();
+        } catch (Exception $e) {
             throw new Exception("Database connection failed: " . $e->getMessage());
         }
     }
@@ -390,7 +391,7 @@ class EnhancedAnalytics {
         // Get average rating - only active reviews
         $stmt = $this->pdo->prepare('SELECT AVG(rating) FROM reviews WHERE app_name = ? AND is_active = TRUE');
         $stmt->execute([$appName]);
-        $averageRating = round($stmt->fetchColumn(), 1);
+        $averageRating = round((int) $stmt->fetchColumn(), 1);
 
         return [
             'this_month_count' => (int)$thisMonthCount,

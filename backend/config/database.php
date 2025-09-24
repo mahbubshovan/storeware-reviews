@@ -43,4 +43,13 @@ class Database {
         return $this->conn;
     }
 }
+
+/**
+ * Global function for backward compatibility
+ * Returns a PDO connection using the centralized Database class
+ */
+function getDbConnection() {
+    $database = new Database();
+    return $database->getConnection();
+}
 ?>

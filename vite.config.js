@@ -14,9 +14,9 @@ export default defineConfig({
     // Development server configuration
     proxy: {
       '/backend': {
-        target: 'http://localhost:8001',
+        target: 'http://localhost:8000',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/backend/, '')
+        rewrite: (path) => path.replace(/^\/backend/, '/backend')
       }
     }
   }

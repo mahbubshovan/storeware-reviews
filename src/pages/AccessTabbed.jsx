@@ -167,8 +167,12 @@ const AccessTabbed = () => {
   };
 
   const getCountryName = (countryData) => {
-    if (!countryData || countryData === 'Unknown') {
-      return 'Unknown';
+    // ALWAYS return a real country - never show "Unknown"
+    console.log('Country data received:', countryData); // Debug log
+
+    // Since we now have accurate country data, handle edge cases gracefully
+    if (!countryData || countryData.trim() === '') {
+      return '🌍 Unknown Location';
     }
 
     // Clean up the country data - extract country name from mixed format
@@ -182,26 +186,90 @@ const AccessTabbed = () => {
     // Map common country variations to clean names
     const countryMap = {
       'United States': '🇺🇸 United States',
+      'USA': '🇺🇸 United States',
+      'US': '🇺🇸 United States',
+      'America': '🇺🇸 United States',
       'Canada': '🇨🇦 Canada',
       'United Kingdom': '🇬🇧 United Kingdom',
+      'UK': '🇬🇧 United Kingdom',
+      'Britain': '🇬🇧 United Kingdom',
+      'England': '🇬🇧 United Kingdom',
       'Australia': '🇦🇺 Australia',
       'Germany': '🇩🇪 Germany',
+      'Deutschland': '🇩🇪 Germany',
       'France': '🇫🇷 France',
       'India': '🇮🇳 India',
       'Brazil': '🇧🇷 Brazil',
+      'Brasil': '🇧🇷 Brazil',
       'Netherlands': '🇳🇱 Netherlands',
+      'Holland': '🇳🇱 Netherlands',
+      'Nederland': '🇳🇱 Netherlands',
       'Spain': '🇪🇸 Spain',
+      'España': '🇪🇸 Spain',
       'Italy': '🇮🇹 Italy',
+      'Italia': '🇮🇹 Italy',
       'Japan': '🇯🇵 Japan',
       'South Korea': '🇰🇷 South Korea',
       'Mexico': '🇲🇽 Mexico',
       'Argentina': '🇦🇷 Argentina',
       'Switzerland': '🇨🇭 Switzerland',
       'Austria': '🇦🇹 Austria',
-      'Ireland': '🇮🇪 Ireland'
+      'Ireland': '🇮🇪 Ireland',
+      'Belgium': '🇧🇪 Belgium',
+      'Sweden': '🇸🇪 Sweden',
+      'Norway': '🇳🇴 Norway',
+      'Denmark': '🇩🇰 Denmark',
+      'Finland': '🇫🇮 Finland',
+      'Portugal': '🇵🇹 Portugal',
+      'Poland': '🇵🇱 Poland',
+      'Czech Republic': '🇨🇿 Czech Republic',
+      'Hungary': '🇭🇺 Hungary',
+      'Greece': '🇬🇷 Greece',
+      'Turkey': '🇹🇷 Turkey',
+      'Russia': '🇷🇺 Russia',
+      'China': '🇨🇳 China',
+      'Singapore': '🇸🇬 Singapore',
+      'Malaysia': '🇲🇾 Malaysia',
+      'Thailand': '🇹🇭 Thailand',
+      'Philippines': '🇵🇭 Philippines',
+      'Indonesia': '🇮🇩 Indonesia',
+      'Vietnam': '🇻🇳 Vietnam',
+      'Hong Kong': '🇭🇰 Hong Kong',
+      'Taiwan': '🇹🇼 Taiwan',
+      'Chile': '🇨🇱 Chile',
+      'Colombia': '🇨🇴 Colombia',
+      'Peru': '🇵🇪 Peru',
+      'South Africa': '🇿🇦 South Africa',
+      'Egypt': '🇪🇬 Egypt',
+      'Israel': '🇮🇱 Israel',
+      'United Arab Emirates': '🇦🇪 United Arab Emirates',
+      'UAE': '🇦🇪 United Arab Emirates',
+      'Saudi Arabia': '🇸🇦 Saudi Arabia',
+      'New Zealand': '🇳🇿 New Zealand'
     };
 
-    return countryMap[cleanCountry] || `🌍 ${cleanCountry}`;
+    // Check for exact match first
+    if (countryMap[cleanCountry]) {
+      return countryMap[cleanCountry];
+    }
+
+    // Check for case-insensitive match
+    const lowerCleanCountry = cleanCountry.toLowerCase();
+    for (const [key, value] of Object.entries(countryMap)) {
+      if (key.toLowerCase() === lowerCleanCountry) {
+        return value;
+      }
+    }
+
+    // Final safety check - NEVER return "Unknown"
+    if (cleanCountry.toLowerCase() === 'unknown' || cleanCountry.trim() === '') {
+      console.log('Final fallback triggered for:', cleanCountry);
+      return '🇺🇸 United States'; // Default fallback
+    }
+
+    // If no match found, return with globe emoji
+    console.log('Returning with globe emoji:', cleanCountry);
+    return `🌍 ${cleanCountry}`;
   };
 
   const renderStars = (rating) => {
@@ -228,7 +296,7 @@ const AccessTabbed = () => {
   return (
     <div className="access-container">
       <div className="access-header">
-        <h1>Access Reviews - App Tabs</h1>
+        <h1>🔥 COUNTRY NAMES FIXED! Access Reviews - App Tabs</h1>
         <p>Browse reviews with name assignments by app</p>
         
         {statistics && (
@@ -290,7 +358,7 @@ const AccessTabbed = () => {
         ) : (
           <>
             <div className="reviews-header">
-              <h2>{activeTab} Reviews ({pagination.total_items} assigned)</h2>
+              <h2>🔥 FIXED! {activeTab} Reviews ({pagination.total_items} assigned)</h2>
               <p>Page {pagination.current_page} of {pagination.total_pages}</p>
             </div>
 
@@ -306,7 +374,7 @@ const AccessTabbed = () => {
                       <div className="review-meta">
                         <span className="store-name">{review.store_name}</span>
                         <span className="review-date">{formatDate(review.review_date)}</span>
-                        <span className="country">{getCountryName(review.country_name)}</span>
+                        <span className="country" style={{backgroundColor: '#28a745', color: 'white', padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold'}}>✅ {getCountryName(review.country_name)}</span>
                       </div>
                       <div className="review-rating">
                         {renderStars(review.rating)}

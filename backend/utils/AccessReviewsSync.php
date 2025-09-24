@@ -156,24 +156,28 @@ class AccessReviewsSync {
             if ($existingReview) {
                 // Review exists - update the original_review_id to maintain the link
                 // and preserve the earned_by assignment
+                // ALWAYS update country_name to ensure accuracy (fix Unknown countries)
                 $updateStmt = $conn->prepare("
                     UPDATE access_reviews
-                    SET original_review_id = ?, country_name = ?, rating = ?
+                    SET original_review_id = ?,
+                        country_name = COALESCE(NULLIF(?, ''), NULLIF(?, 'Unknown'), country_name),
+                        rating = ?
                     WHERE id = ?
                 ");
 
                 $success = $updateStmt->execute([
                     $review['id'],
-                    $review['country_name'],
+                    $review['country_name'], // First preference: new country data
+                    $review['country_name'], // Second preference: if not 'Unknown'
                     $review['rating'],
                     $existingReview['id']
                 ]);
 
                 if ($success && !empty($existingReview['earned_by'])) {
                     $preservedCount++;
-                    echo "✅ Preserved assignment: {$review['app_name']} review from {$review['review_date']} (assigned to: {$existingReview['earned_by']}) - Updated original_review_id to {$review['id']}\n";
+                    echo "✅ Preserved assignment: {$review['app_name']} review from {$review['review_date']} (assigned to: {$existingReview['earned_by']}) - Updated original_review_id to {$review['id']}, country: {$review['country_name']}\n";
                 } elseif ($success) {
-                    echo "🔄 Updated unassigned review link: {$review['app_name']} review from {$review['review_date']} - Updated original_review_id to {$review['id']}\n";
+                    echo "🔄 Updated unassigned review link: {$review['app_name']} review from {$review['review_date']} - Updated original_review_id to {$review['id']}, country: {$review['country_name']}\n";
                 } else {
                     echo "❌ Failed to update review link for {$review['app_name']} review from {$review['review_date']}\n";
                 }
@@ -200,6 +204,35 @@ class AccessReviewsSync {
         }
 
         echo "Added $addedCount new reviews, preserved $preservedCount assignments\n";
+
+        // Fix any remaining unknown countries
+        $this->fixUnknownCountries($conn);
+    }
+
+    /**
+     * Fix unknown countries in access_reviews by copying from main reviews table
+     */
+    private function fixUnknownCountries($conn) {
+        echo "🌍 Fixing unknown countries in access_reviews...\n";
+
+        $stmt = $conn->prepare("
+            UPDATE access_reviews ar
+            INNER JOIN reviews r ON ar.original_review_id = r.id
+            SET ar.country_name = r.country_name
+            WHERE (ar.country_name = 'Unknown' OR ar.country_name IS NULL OR ar.country_name = '')
+            AND r.country_name IS NOT NULL
+            AND r.country_name != 'Unknown'
+            AND r.country_name != ''
+        ");
+
+        $stmt->execute();
+        $fixed = $stmt->rowCount();
+
+        if ($fixed > 0) {
+            echo "✅ Fixed $fixed unknown countries in access_reviews\n";
+        } else {
+            echo "✅ No unknown countries found to fix\n";
+        }
     }
     
     /**

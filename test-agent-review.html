@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Agent Review Component</title>
+</head>
+<body>
+    <h1>Testing Agent Review Component</h1>
+    <p>This is a test to verify the component is working.</p>
+    
+    <script>
+        // Test API endpoints
+        console.log('Testing API endpoints...');
+        
+        fetch('/backend/api/apps.php')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Apps API:', data);
+            })
+            .catch(error => {
+                console.error('Apps API Error:', error);
+            });
+            
+        fetch('/backend/api/agent-stats.php?app_name=StoreSEO&filter=last_30_days')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Agent Stats API:', data);
+            })
+            .catch(error => {
+                console.error('Agent Stats API Error:', error);
+            });
+    </script>
+</body>
+</html>

@@ -2,9 +2,11 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+require_once __DIR__ . '/config/database.php';
+
 try {
-    $pdo = new PDO("mysql:host=localhost;dbname=shopify_reviews", 'root', '');
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $database = new Database();
+    $pdo = $database->getConnection();
     
     echo "=== CHECKING REAL DATABASE DATA ===\n";
     

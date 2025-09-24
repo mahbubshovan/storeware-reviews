@@ -164,8 +164,9 @@ const Access = () => {
   };
 
   const getCountryName = (countryData) => {
-    if (!countryData || countryData === 'Unknown') {
-      return 'Unknown';
+    // Since we now have accurate country data, handle edge cases gracefully
+    if (!countryData || countryData.trim() === '') {
+      return '🌍 Unknown Location';
     }
 
     // Clean up the country data - extract country name from mixed format
@@ -176,7 +177,7 @@ const Access = () => {
       .filter(line => line.length > 0)
       .pop(); // Get the last non-empty line (usually the country)
 
-    // Map common country variations to clean names
+    // Map common country variations to clean names with flags
     const countryMap = {
       'United States': '🇺🇸 United States',
       'Canada': '🇨🇦 Canada',
@@ -197,7 +198,10 @@ const Access = () => {
       'Belgium': '🇧🇪 Belgium',
       'Switzerland': '🇨🇭 Switzerland',
       'Austria': '🇦🇹 Austria',
-      'Ireland': '🇮🇪 Ireland'
+      'Ireland': '🇮🇪 Ireland',
+      'Brazil': '🇧🇷 Brazil',
+      'Italy': '🇮🇹 Italy',
+      'Spain': '🇪🇸 Spain'
     };
 
     return countryMap[cleanCountry] || `🌍 ${cleanCountry}`;

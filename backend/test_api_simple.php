@@ -1,6 +1,9 @@
 <?php
 // Simple API test
-$pdo = new PDO("mysql:host=localhost;dbname=shopify_reviews", 'root', '');
+require_once __DIR__ . '/config/database.php';
+
+$database = new Database();
+$pdo = $database->getConnection();
 
 // Clear and insert simple test data
 $pdo->exec("DELETE FROM access_reviews WHERE app_name = 'StoreSEO'");

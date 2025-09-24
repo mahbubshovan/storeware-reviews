@@ -1,7 +1,9 @@
 <?php
 // Manual fix - directly insert your exact real data
-$pdo = new PDO("mysql:host=localhost;dbname=shopify_reviews", 'root', '');
-$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+require_once __DIR__ . '/config/database.php';
+
+$database = new Database();
+$pdo = $database->getConnection();
 
 echo "MANUAL FIX - Inserting your exact real data\n";
 echo "==========================================\n";

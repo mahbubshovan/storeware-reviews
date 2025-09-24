@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 
 const ReviewCount = () => {
-  // Clean up country names from messy database format
+  // Clean up country names from database format
   const getCountryName = (countryData) => {
-    if (!countryData || countryData === 'Unknown') {
-      return 'Unknown';
+    // Since we now have accurate country data, handle edge cases gracefully
+    if (!countryData || countryData.trim() === '') {
+      return '🌍 Unknown Location';
     }
 
     // Clean up the country data - extract country name from mixed format
@@ -158,6 +159,43 @@ const ReviewCount = () => {
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
       padding: '20px 0'
     }}>
+      <style>
+        {`
+          .time-filter-tabs {
+            display: flex;
+            background: white;
+            border-radius: 12px;
+            padding: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+          }
+
+          .time-filter-tab {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            color: #666;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-align: center;
+          }
+
+          .time-filter-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+          }
+
+          .time-filter-tab:hover:not(.active) {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+          }
+        `}
+      </style>
       <style>
         {`
           @keyframes pulse {
@@ -359,63 +397,20 @@ const ReviewCount = () => {
                 </p>
               </div>
 
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px'
-              }}>
+              {/* Time Filter Tabs */}
+              <div className="time-filter-tabs">
                 <button
+                  className={`time-filter-tab ${timeFilter === 'last_30_days' ? 'active' : ''}`}
                   onClick={() => setTimeFilter('last_30_days')}
-                  style={{
-                    padding: '12px 16px',
-                    border: timeFilter === 'last_30_days' ? '2px solid #667eea' : '2px solid #e2e8f0',
-                    borderRadius: '12px',
-                    background: timeFilter === 'last_30_days'
-                      ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-                      : 'white',
-                    color: timeFilter === 'last_30_days' ? 'white' : '#333',
-                    cursor: 'pointer',
-                    fontSize: '0.9rem',
-                    fontWeight: '500',
-                    transition: 'all 0.3s ease',
-                    textAlign: 'left'
-                  }}
                 >
                   📊 Last 30 Days
-                  <div style={{
-                    fontSize: '0.75rem',
-                    opacity: 0.8,
-                    marginTop: '2px'
-                  }}>
-                    Recent performance
-                  </div>
                 </button>
 
                 <button
+                  className={`time-filter-tab ${timeFilter === 'all_time' ? 'active' : ''}`}
                   onClick={() => setTimeFilter('all_time')}
-                  style={{
-                    padding: '12px 16px',
-                    border: timeFilter === 'all_time' ? '2px solid #667eea' : '2px solid #e2e8f0',
-                    borderRadius: '12px',
-                    background: timeFilter === 'all_time'
-                      ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-                      : 'white',
-                    color: timeFilter === 'all_time' ? 'white' : '#333',
-                    cursor: 'pointer',
-                    fontSize: '0.9rem',
-                    fontWeight: '500',
-                    transition: 'all 0.3s ease',
-                    textAlign: 'left'
-                  }}
                 >
                   🏆 All Time
-                  <div style={{
-                    fontSize: '0.75rem',
-                    opacity: 0.8,
-                    marginTop: '2px'
-                  }}>
-                    Complete history
-                  </div>
                 </button>
               </div>
             </div>
@@ -626,7 +621,7 @@ const ReviewCount = () => {
                       {agentStats.length}
                     </div>
                     <div style={{ fontSize: '0.9rem', opacity: 0.9 }}>
-                      Active Agents
+                      {timeFilter === 'all_time' ? 'Total Agents' : 'Active Agents'}
                     </div>
                   </div>
 
@@ -641,7 +636,7 @@ const ReviewCount = () => {
                       {agentStats.reduce((sum, stat) => sum + stat.review_count, 0)}
                     </div>
                     <div style={{ fontSize: '0.9rem', opacity: 0.9 }}>
-                      Total Reviews
+                      {timeFilter === 'all_time' ? 'All-Time Reviews' : 'Recent Reviews'}
                     </div>
                   </div>
 
@@ -710,9 +705,24 @@ const ReviewCount = () => {
                           fontSize: '1.1rem',
                           fontWeight: '500',
                           margin: '0 0 8px 0',
-                          color: '#333'
+                          color: '#333',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
                         }}>
-                          {stat.agent_name}
+                          <span>{stat.agent_name}</span>
+                          {timeFilter === 'all_time' && (
+                            <span style={{
+                              fontSize: '0.7rem',
+                              background: '#667eea',
+                              color: 'white',
+                              padding: '2px 6px',
+                              borderRadius: '10px',
+                              fontWeight: 'bold'
+                            }}>
+                              ALL TIME
+                            </span>
+                          )}
                         </div>
 
                         {/* Review count */}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-const ReviewCredit = () => {
+const ReviewCreditSimple = () => {
   const [timeFilter, setTimeFilter] = useState('last_30_days');
   const [agentStats, setAgentStats] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -11,9 +11,11 @@ const ReviewCredit = () => {
   // Fetch available apps
   const fetchApps = async () => {
     try {
+      console.log('Fetching apps...');
       const response = await fetch('/backend/api/apps.php');
       if (!response.ok) throw new Error('Failed to fetch apps');
       const data = await response.json();
+      console.log('Apps loaded:', data);
       setApps(data);
     } catch (err) {
       console.error('Error fetching apps:', err);
@@ -28,6 +30,7 @@ const ReviewCredit = () => {
       return;
     }
 
+    console.log('Fetching agent stats for:', selectedApp, 'filter:', timeFilter);
     setLoading(true);
     setError(null);
     try {
@@ -35,6 +38,7 @@ const ReviewCredit = () => {
       const response = await fetch(`/backend/api/agent-stats.php?app_name=${encodeURIComponent(selectedApp)}&filter=${timeFilter}&${cacheBust}`);
       if (!response.ok) throw new Error('Failed to fetch agent stats');
       const data = await response.json();
+      console.log('Agent stats loaded:', data);
 
       if (data.message === 'no_assignments') {
         setAgentStats([]);
@@ -53,11 +57,13 @@ const ReviewCredit = () => {
 
   // Load apps on component mount
   useEffect(() => {
+    console.log('Component mounted, fetching apps...');
     fetchApps();
   }, []);
 
   // Fetch agent stats when app or time filter changes
   useEffect(() => {
+    console.log('App or filter changed:', selectedApp, timeFilter);
     if (selectedApp !== 'all') {
       fetchAgentStats();
     } else {
@@ -65,6 +71,8 @@ const ReviewCredit = () => {
       setError(null);
     }
   }, [selectedApp, timeFilter]);
+
+  console.log('Rendering component with:', { selectedApp, timeFilter, agentStats, loading, error, apps });
 
   return (
     <div style={{
@@ -76,7 +84,18 @@ const ReviewCredit = () => {
         <h1>🎯 Agent Reviews Dashboard</h1>
         <p>Track agent performance with Last 30 Days and All Time views</p>
 
-        {/* Time Filter Tabs */}
+        {/* Debug Info */}
+        <div style={{ 
+          background: 'rgba(255,255,255,0.1)', 
+          padding: '10px', 
+          margin: '20px 0',
+          borderRadius: '8px',
+          fontSize: '14px'
+        }}>
+          <p>Debug: Apps loaded: {apps.length}, Selected: {selectedApp}, Stats: {agentStats.length}</p>
+          {error && <p style={{ color: '#ffcccb' }}>Error: {error}</p>}
+        </div>
+
         {/* App Selector */}
         <div style={{ margin: '20px 0' }}>
           <div style={{
@@ -85,10 +104,10 @@ const ReviewCredit = () => {
             padding: '20px',
             marginBottom: '20px'
           }}>
-            <label style={{
-              display: 'block',
-              marginBottom: '10px',
-              color: 'white',
+            <label style={{ 
+              display: 'block', 
+              marginBottom: '10px', 
+              color: 'white', 
               fontWeight: 'bold',
               fontSize: '1.1rem'
             }}>
@@ -96,7 +115,10 @@ const ReviewCredit = () => {
             </label>
             <select
               value={selectedApp}
-              onChange={(e) => setSelectedApp(e.target.value)}
+              onChange={(e) => {
+                console.log('App selected:', e.target.value);
+                setSelectedApp(e.target.value);
+              }}
               style={{
                 padding: '12px 16px',
                 borderRadius: '8px',
@@ -122,7 +144,10 @@ const ReviewCredit = () => {
           <div style={{ margin: '30px 0' }}>
             <div style={{ display: 'inline-flex', background: 'rgba(255,255,255,0.2)', borderRadius: '10px', padding: '5px' }}>
               <button
-                onClick={() => setTimeFilter('last_30_days')}
+                onClick={() => {
+                  console.log('Filter changed to: last_30_days');
+                  setTimeFilter('last_30_days');
+                }}
                 style={{
                   padding: '12px 24px',
                   background: timeFilter === 'last_30_days' ? 'white' : 'transparent',
@@ -136,7 +161,10 @@ const ReviewCredit = () => {
                 📊 Last 30 Days
               </button>
               <button
-                onClick={() => setTimeFilter('all_time')}
+                onClick={() => {
+                  console.log('Filter changed to: all_time');
+                  setTimeFilter('all_time');
+                }}
                 style={{
                   padding: '12px 24px',
                   background: timeFilter === 'all_time' ? 'white' : 'transparent',
@@ -153,7 +181,7 @@ const ReviewCredit = () => {
           </div>
         )}
 
-        {/* Content based on selected app and filter */}
+        {/* Content */}
         <div style={{
           background: 'rgba(255,255,255,0.1)',
           borderRadius: '15px',
@@ -197,8 +225,6 @@ const ReviewCredit = () => {
                   <h3 style={{ color: 'white', marginBottom: '15px' }}>No Agent Assignments Found</h3>
                   <p style={{ fontSize: '16px', opacity: 0.9, color: 'white' }}>
                     No reviews have been assigned to agents for {selectedApp} in the selected time period.
-                    <br />
-                    Visit the Access Reviews page to assign reviews to agents.
                   </p>
                 </div>
               ) : (
@@ -238,7 +264,7 @@ const ReviewCredit = () => {
                             🏆 Top Performer
                           </div>
                         )}
-
+                        
                         <div style={{ textAlign: 'center' }}>
                           <div style={{
                             fontSize: '2.5rem',
@@ -263,7 +289,7 @@ const ReviewCredit = () => {
                           }}>
                             Reviews Handled
                           </div>
-
+                          
                           {agent.review_count > 0 && (
                             <div style={{
                               background: '#f8f9fa',
@@ -289,4 +315,4 @@ const ReviewCredit = () => {
   );
 };
 
-export default ReviewCredit;
+export default ReviewCreditSimple;

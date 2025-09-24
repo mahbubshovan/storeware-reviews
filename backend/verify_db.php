@@ -1,5 +1,8 @@
 <?php
-$pdo = new PDO("mysql:host=localhost;dbname=shopify_reviews", 'root', '');
+require_once __DIR__ . '/config/database.php';
+
+$database = new Database();
+$pdo = $database->getConnection();
 
 echo "=== VERIFYING DATABASE DATA ===\n";
 

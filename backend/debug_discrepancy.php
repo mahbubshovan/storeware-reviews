@@ -1,6 +1,9 @@
 <?php
 // Debug the discrepancy between access reviews page and main review page
-$pdo = new PDO("mysql:host=localhost;dbname=shopify_reviews", 'root', '');
+require_once __DIR__ . '/config/database.php';
+
+$database = new Database();
+$pdo = $database->getConnection();
 
 echo "=== DEBUGGING DISCREPANCY ===\n";
 echo "StoreSEO showing 517 in access review page vs 519 in main review page\n\n";
