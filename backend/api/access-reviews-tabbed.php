@@ -171,18 +171,36 @@ function handleGetTabbedReviews($conn) {
  */
 function getLiveStatistics($appName) {
     try {
-        // Use cURL to call the Enhanced Analytics API to avoid include issues
-        $url = "http://localhost:8000/api/enhanced-analytics.php?app=" . urlencode($appName);
+        // Determine the correct base URL for the current environment
+        $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost:8000';
+
+        // For Railway deployment, use the current host
+        if (getenv('RAILWAY_ENVIRONMENT') || strpos($host, 'railway.app') !== false) {
+            $baseUrl = $protocol . '://' . $host;
+        } else {
+            // Local development
+            $baseUrl = 'http://localhost:8000';
+        }
+
+        $url = $baseUrl . "/api/enhanced-analytics.php?app=" . urlencode($appName);
 
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, 10);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // For Railway HTTPS
 
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
         curl_close($ch);
+
+        if ($curlError) {
+            error_log("cURL error for $appName statistics: $curlError");
+        }
 
         if ($httpCode === 200 && $response) {
             $data = json_decode($response, true);
@@ -192,6 +210,8 @@ function getLiveStatistics($appName) {
                     'avg_rating' => $data['data']['average_rating']
                 ];
             }
+        } else {
+            error_log("HTTP $httpCode response from $url for $appName");
         }
     } catch (Exception $e) {
         // Fallback to database if Enhanced Analytics fails

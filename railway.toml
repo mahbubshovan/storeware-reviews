@@ -9,7 +9,16 @@ restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
 
 [environments.production.variables]
+# Railway MySQL variables (automatically set by Railway)
+MYSQL_HOST = "${{MySQL.MYSQL_HOST}}"
+MYSQL_DATABASE = "${{MySQL.MYSQL_DATABASE}}"
+MYSQL_USER = "${{MySQL.MYSQL_USER}}"
+MYSQL_PASSWORD = "${{MySQL.MYSQL_PASSWORD}}"
+MYSQL_PORT = "${{MySQL.MYSQL_PORT}}"
+
+# Backward compatibility variables
 DB_HOST = "${{MySQL.MYSQL_HOST}}"
 DB_NAME = "${{MySQL.MYSQL_DATABASE}}"
 DB_USER = "${{MySQL.MYSQL_USER}}"
 DB_PASS = "${{MySQL.MYSQL_PASSWORD}}"
+DB_PORT = "${{MySQL.MYSQL_PORT}}"
