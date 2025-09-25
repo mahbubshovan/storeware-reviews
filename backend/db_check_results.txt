@@ -1,0 +1,2 @@
+StoreFAQ access_reviews: This Month 11, Last 30 Days 12
+StoreFAQ reviews: This Month 20, Last 30 Days 24

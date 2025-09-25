@@ -13,12 +13,12 @@ class Database {
 
     public function __construct() {
         // Load environment variables or use defaults
-        $env = parse_ini_file(__DIR__.'/.env');
-        $this->host = $_ENV['DB_HOST'] ?? $env['DB_HOST'] ?: 'localhost';
-        $this->db_name = $_ENV['DB_NAME'] ?? $env['DB_NAME'] ?: 'shopify_reviews';
-        $this->username = $_ENV['DB_USER'] ?? $env['DB_USER'] ?: 'root';
-        $this->password = $_ENV['DB_PASS'] ?? $env['DB_PASS'] ?: '';
-        $this->port = $_ENV['DB_PORT'] ?? $env['DB_PORT'] ?: '3306';
+        $env = file_exists(__DIR__.'/.env') ? parse_ini_file(__DIR__.'/.env') : [];
+        $this->host = $env['DB_HOST'] ?? 'localhost';
+        $this->db_name = $env['DB_NAME'] ?? 'shopify_reviews';
+        $this->username = $env['DB_USER'] ?? 'root';
+        $this->password = $env['DB_PASS'] ?? '';
+        $this->port = $env['DB_PORT'] ?? '3306';
     }
 
     public function getConnection() {
