@@ -1,23 +1,41 @@
 <?php
 require_once __DIR__ . '/../config/cors.php';
-require_once __DIR__ . '/../utils/DatabaseManager.php';
+require_once __DIR__ . '/../config/database.php';
 
 try {
-    $dbManager = new DatabaseManager();
-    $conn = $dbManager->getConnection();
+    $database = new Database();
+    $conn = $database->getConnection();
     
-    // Get distinct app names from the reviews table (only apps we're actively tracking)
-    // Exclude BetterDocs FAQ and Vitals as requested
+    // Define the ONLY allowed apps (hardcoded to ensure consistency)
+    $allowedApps = [
+        'StoreSEO',
+        'StoreFAQ',
+        'EasyFlow',
+        'BetterDocs FAQ Knowledge Base',
+        'Vidify',
+        'TrustSync'
+    ];
+
+    // Get only apps that exist in database AND are in our allowed list
+    $placeholders = str_repeat('?,', count($allowedApps) - 1) . '?';
     $stmt = $conn->prepare("
         SELECT DISTINCT app_name
         FROM reviews
         WHERE app_name IS NOT NULL
         AND is_active = TRUE
-        AND app_name NOT IN ('BetterDocs FAQ', 'Vitals')
-        AND app_name IN ('StoreSEO', 'StoreFAQ', 'EasyFlow', 'TrustSync', 'Vidify', 'BetterDocs FAQ Knowledge Base')
-        ORDER BY app_name
+        AND app_name IN ($placeholders)
+        ORDER BY
+            CASE app_name
+                WHEN 'StoreSEO' THEN 1
+                WHEN 'StoreFAQ' THEN 2
+                WHEN 'EasyFlow' THEN 3
+                WHEN 'BetterDocs FAQ Knowledge Base' THEN 4
+                WHEN 'Vidify' THEN 5
+                WHEN 'TrustSync' THEN 6
+                ELSE 7
+            END
     ");
-    $stmt->execute();
+    $stmt->execute($allowedApps);
     $result = $stmt->fetchAll(PDO::FETCH_COLUMN);
     
     // Return just the array of app names

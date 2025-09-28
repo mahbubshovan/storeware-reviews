@@ -18,8 +18,7 @@ class FirstPageMonitor {
             'StoreFAQ' => 'https://apps.shopify.com/storefaq/reviews?sort_by=newest&page=1',
             'EasyFlow' => 'https://apps.shopify.com/product-options-4/reviews?sort_by=newest&page=1',
             'TrustSync' => 'https://apps.shopify.com/customer-review-app/reviews?sort_by=newest&page=1',
-            'Vitals' => 'https://apps.shopify.com/vitals/reviews?sort_by=newest&page=1',
-            'BetterDocs FAQ' => 'https://apps.shopify.com/betterdocs-knowledgebase/reviews?sort_by=newest&page=1',
+            'BetterDocs FAQ Knowledge Base' => 'https://apps.shopify.com/betterdocs-knowledgebase/reviews?sort_by=newest&page=1',
             'Vidify' => 'https://apps.shopify.com/vidify/reviews?sort_by=newest&page=1'
         ];
     }

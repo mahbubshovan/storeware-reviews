@@ -171,12 +171,16 @@ function handleGetTabbedReviews($conn) {
  */
 function getLiveStatistics($appName) {
     try {
-        // Determine the correct base URL for the current environment
+        // Determine the correct base URL for ANY hosting platform
         $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
         $host = $_SERVER['HTTP_HOST'] ?? 'localhost:8000';
 
-        // For Railway deployment, use the current host
-        if (getenv('RAILWAY_ENVIRONMENT') || strpos($host, 'railway.app') !== false) {
+        // Universal platform detection - works with xCloud, Railway, cPanel, Heroku, etc.
+        $isLiveServer = !in_array($host, ['localhost:8000', 'localhost:5173', '127.0.0.1:8000']) &&
+                       !strpos($host, 'localhost');
+
+        if ($isLiveServer) {
+            // Live server - use current host (works with xCloud, Railway, cPanel, etc.)
             $baseUrl = $protocol . '://' . $host;
         } else {
             // Local development

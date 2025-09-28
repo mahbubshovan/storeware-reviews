@@ -16,9 +16,12 @@ MYSQL_USER = "${{MySQL.MYSQL_USER}}"
 MYSQL_PASSWORD = "${{MySQL.MYSQL_PASSWORD}}"
 MYSQL_PORT = "${{MySQL.MYSQL_PORT}}"
 
-# Backward compatibility variables
+# Universal compatibility variables (works with any platform)
 DB_HOST = "${{MySQL.MYSQL_HOST}}"
 DB_NAME = "${{MySQL.MYSQL_DATABASE}}"
 DB_USER = "${{MySQL.MYSQL_USER}}"
 DB_PASS = "${{MySQL.MYSQL_PASSWORD}}"
 DB_PORT = "${{MySQL.MYSQL_PORT}}"
+
+# Platform detection
+PLATFORM = "Railway"

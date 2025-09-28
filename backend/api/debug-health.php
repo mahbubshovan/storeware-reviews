@@ -16,9 +16,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 try {
     require_once __DIR__ . '/../config/database.php';
-    
+    require_once __DIR__ . '/../config/platform.php';
+
+    $platformInfo = PlatformConfig::getPlatformInfo();
+
     $health = [
         'timestamp' => date('Y-m-d H:i:s'),
+        'platform_info' => $platformInfo,
         'server_info' => [
             'php_version' => PHP_VERSION,
             'server_software' => $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown',
@@ -26,24 +30,19 @@ try {
             'script_name' => $_SERVER['SCRIPT_NAME'] ?? 'Unknown'
         ],
         'environment_variables' => [
-            'railway_mysql' => [
-                'MYSQL_HOST' => getenv('MYSQL_HOST') ? 'SET (' . getenv('MYSQL_HOST') . ')' : 'NOT_SET',
-                'MYSQL_DATABASE' => getenv('MYSQL_DATABASE') ? 'SET (' . getenv('MYSQL_DATABASE') . ')' : 'NOT_SET',
-                'MYSQL_USER' => getenv('MYSQL_USER') ? 'SET (' . getenv('MYSQL_USER') . ')' : 'NOT_SET',
-                'MYSQL_PASSWORD' => getenv('MYSQL_PASSWORD') ? 'SET (****)' : 'NOT_SET',
-                'MYSQL_PORT' => getenv('MYSQL_PORT') ? 'SET (' . getenv('MYSQL_PORT') . ')' : 'NOT_SET'
-            ],
-            'standard_db' => [
+            'platform_specific' => getPlatformSpecificEnvVars($platformInfo['platform']),
+            'universal_db' => [
                 'DB_HOST' => getenv('DB_HOST') ? 'SET (' . getenv('DB_HOST') . ')' : 'NOT_SET',
                 'DB_NAME' => getenv('DB_NAME') ? 'SET (' . getenv('DB_NAME') . ')' : 'NOT_SET',
                 'DB_USER' => getenv('DB_USER') ? 'SET (' . getenv('DB_USER') . ')' : 'NOT_SET',
-                'DB_PASS' => getenv('DB_PASS') ? 'SET (****)' : 'NOT_SET'
+                'DB_PASS' => getenv('DB_PASS') ? 'SET (****)' : 'NOT_SET',
+                'DB_PORT' => getenv('DB_PORT') ? 'SET (' . getenv('DB_PORT') . ')' : 'NOT_SET'
             ],
-            'env_superglobal' => [
-                'MYSQL_HOST' => $_ENV['MYSQL_HOST'] ?? 'NOT_SET',
-                'MYSQL_DATABASE' => $_ENV['MYSQL_DATABASE'] ?? 'NOT_SET',
-                'MYSQL_USER' => $_ENV['MYSQL_USER'] ?? 'NOT_SET',
-                'MYSQL_PASSWORD' => isset($_ENV['MYSQL_PASSWORD']) ? 'SET (****)' : 'NOT_SET'
+            'mysql_vars' => [
+                'MYSQL_HOST' => getenv('MYSQL_HOST') ? 'SET (' . getenv('MYSQL_HOST') . ')' : 'NOT_SET',
+                'MYSQL_DATABASE' => getenv('MYSQL_DATABASE') ? 'SET (' . getenv('MYSQL_DATABASE') . ')' : 'NOT_SET',
+                'MYSQL_USER' => getenv('MYSQL_USER') ? 'SET (' . getenv('MYSQL_USER') . ')' : 'NOT_SET',
+                'MYSQL_PASSWORD' => getenv('MYSQL_PASSWORD') ? 'SET (****)' : 'NOT_SET'
             ]
         ],
         'database_connection' => 'attempting...',
@@ -120,5 +119,37 @@ try {
         'message' => $e->getMessage(),
         'timestamp' => date('Y-m-d H:i:s')
     ], JSON_PRETTY_PRINT);
+}
+
+function getPlatformSpecificEnvVars($platform) {
+    switch ($platform) {
+        case 'Railway':
+            return [
+                'RAILWAY_ENVIRONMENT' => getenv('RAILWAY_ENVIRONMENT') ?: 'NOT_SET',
+                'MYSQL_HOST' => getenv('MYSQL_HOST') ? 'SET (' . getenv('MYSQL_HOST') . ')' : 'NOT_SET',
+                'MYSQL_DATABASE' => getenv('MYSQL_DATABASE') ? 'SET (' . getenv('MYSQL_DATABASE') . ')' : 'NOT_SET'
+            ];
+        case 'Heroku':
+            return [
+                'HEROKU_APP_NAME' => getenv('HEROKU_APP_NAME') ?: 'NOT_SET',
+                'CLEARDB_DATABASE_URL' => getenv('CLEARDB_DATABASE_URL') ? 'SET (****)' : 'NOT_SET'
+            ];
+        case 'xCloud':
+            return [
+                'XCLOUD_ENV' => getenv('XCLOUD_ENV') ?: 'NOT_SET',
+                'DB_HOST' => getenv('DB_HOST') ? 'SET (' . getenv('DB_HOST') . ')' : 'NOT_SET',
+                'DB_NAME' => getenv('DB_NAME') ? 'SET (' . getenv('DB_NAME') . ')' : 'NOT_SET'
+            ];
+        case 'cPanel':
+            return [
+                'CPANEL_ENV' => 'Detected via domain',
+                'DB_HOST' => getenv('DB_HOST') ? 'SET (' . getenv('DB_HOST') . ')' : 'NOT_SET'
+            ];
+        default:
+            return [
+                'platform' => $platform,
+                'detection_method' => 'domain_based_or_unknown'
+            ];
+    }
 }
 ?>

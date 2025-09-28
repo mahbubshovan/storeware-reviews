@@ -311,20 +311,8 @@ class ImprovedShopifyReviewScraper {
                 $reviewContent = trim($contentNodes->item(0)->textContent);
             }
 
-            // Extract country - look for country info in the merchant details section
-            $countryName = 'Unknown';
-            $merchantDetails = $xpath->query('.//div[contains(@class, "tw-text-body-xs")]', $node);
-            foreach ($merchantDetails as $detail) {
-                $text = trim($detail->textContent);
-                // Look for country patterns (not dates or app usage info)
-                if (!preg_match('/\d+/', $text) && !empty($text) && $text !== $storeName && strlen($text) > 2 && strlen($text) < 50) {
-                    // Simple heuristic: if it's not a number and reasonable length, might be country
-                    if (in_array($text, ['United States', 'Canada', 'United Kingdom', 'Australia', 'Germany', 'France', 'India', 'Brazil'])) {
-                        $countryName = $text;
-                        break;
-                    }
-                }
-            }
+            // Extract country using comprehensive country extraction
+            $countryName = $this->extractCountryFromNode($xpath, $node);
 
             // Validate required fields
             if (empty($storeName) || empty($reviewDate) || $rating === 0) {
@@ -347,5 +335,130 @@ class ImprovedShopifyReviewScraper {
             echo "⚠️ Error extracting review: " . $e->getMessage() . "\n";
             return null;
         }
+    }
+
+    /**
+     * Extract country from review node using comprehensive strategies
+     */
+    private function extractCountryFromNode($xpath, $node) {
+        // Strategy 1: Look for country in specific merchant info elements
+        $countrySelectors = [
+            './/div[contains(@class, "tw-text-body-xs") and contains(@class, "tw-text-fg-tertiary")]',
+            './/span[contains(@class, "tw-text-body-xs") and contains(@class, "tw-text-fg-tertiary")]',
+            './/div[contains(@class, "merchant-location")]',
+            './/span[contains(@class, "merchant-location")]',
+            './/div[contains(@class, "merchant-country")]',
+            './/span[contains(@class, "merchant-country")]',
+            './/div[contains(@class, "tw-text-fg-tertiary")]',
+            './/span[contains(@class, "tw-text-fg-tertiary")]'
+        ];
+
+        foreach ($countrySelectors as $selector) {
+            $nodes = $xpath->query($selector, $node);
+            foreach ($nodes as $countryNode) {
+                $text = trim($countryNode->textContent);
+                $country = $this->validateAndNormalizeCountry($text);
+                if ($country !== 'Unknown') {
+                    return $country;
+                }
+            }
+        }
+
+        // Strategy 2: Look in all text nodes for country patterns
+        $allText = $node->textContent;
+        $lines = preg_split('/\n|\r\n?/', $allText);
+
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (!empty($line) && strlen($line) < 50) {
+                $country = $this->validateAndNormalizeCountry($line);
+                if ($country !== 'Unknown') {
+                    return $country;
+                }
+            }
+        }
+
+        return 'Unknown';
+    }
+
+    /**
+     * Validate and normalize country name
+     */
+    private function validateAndNormalizeCountry($text) {
+        if (empty($text) || strlen($text) < 2 || strlen($text) > 50) {
+            return 'Unknown';
+        }
+
+        // Skip obvious non-country text
+        if (preg_match('/\d{4}|using|replied|helpful|ago|since|days?|weeks?|months?|years?|hours?/i', $text)) {
+            return 'Unknown';
+        }
+
+        return $this->normalizeCountry($text);
+    }
+
+    /**
+     * Normalize country name to standard format
+     */
+    private function normalizeCountry($country) {
+        $country = trim($country);
+
+        // Comprehensive list of real countries
+        $realCountries = [
+            'United States', 'Canada', 'United Kingdom', 'Australia', 'Germany', 'France', 'Italy', 'Spain',
+            'Netherlands', 'Belgium', 'Switzerland', 'Austria', 'Sweden', 'Norway', 'Denmark', 'Finland',
+            'Poland', 'Czech Republic', 'Hungary', 'Romania', 'Bulgaria', 'Croatia', 'Slovenia', 'Slovakia',
+            'Lithuania', 'Latvia', 'Estonia', 'Ireland', 'Portugal', 'Greece', 'Turkey', 'Russia',
+            'Ukraine', 'Belarus', 'Moldova', 'Serbia', 'Bosnia and Herzegovina', 'Montenegro', 'Albania',
+            'North Macedonia', 'Kosovo', 'Malta', 'Cyprus', 'Luxembourg', 'Liechtenstein', 'Monaco',
+            'San Marino', 'Vatican City', 'Andorra', 'Iceland', 'Faroe Islands', 'Greenland',
+            'China', 'Japan', 'South Korea', 'India', 'Indonesia', 'Thailand', 'Vietnam', 'Philippines',
+            'Malaysia', 'Singapore', 'Myanmar', 'Cambodia', 'Laos', 'Bangladesh', 'Pakistan', 'Sri Lanka',
+            'Nepal', 'Bhutan', 'Maldives', 'Afghanistan', 'Iran', 'Iraq', 'Syria', 'Yemen', 'Oman',
+            'United Arab Emirates', 'Qatar', 'Kuwait', 'Bahrain', 'Saudi Arabia', 'Jordan', 'Lebanon',
+            'Israel', 'Palestine', 'Egypt', 'Libya', 'Tunisia', 'Algeria', 'Morocco', 'Sudan',
+            'South Sudan', 'Ethiopia', 'Eritrea', 'Djibouti', 'Somalia', 'Kenya', 'Uganda', 'Tanzania',
+            'Rwanda', 'Burundi', 'Democratic Republic of the Congo', 'Republic of the Congo', 'Central African Republic',
+            'Chad', 'Cameroon', 'Nigeria', 'Niger', 'Mali', 'Burkina Faso', 'Ghana', 'Togo', 'Benin',
+            'Ivory Coast', 'Liberia', 'Sierra Leone', 'Guinea', 'Guinea-Bissau', 'Senegal', 'Gambia',
+            'Mauritania', 'Cape Verde', 'Sao Tome and Principe', 'Equatorial Guinea', 'Gabon',
+            'Angola', 'Zambia', 'Zimbabwe', 'Botswana', 'Namibia', 'South Africa', 'Lesotho', 'Swaziland',
+            'Madagascar', 'Mauritius', 'Seychelles', 'Comoros', 'Mayotte', 'Reunion',
+            'Brazil', 'Argentina', 'Chile', 'Peru', 'Colombia', 'Venezuela', 'Ecuador', 'Bolivia',
+            'Paraguay', 'Uruguay', 'Guyana', 'Suriname', 'French Guiana', 'Falkland Islands',
+            'Mexico', 'Guatemala', 'Belize', 'Honduras', 'El Salvador', 'Nicaragua', 'Costa Rica', 'Panama',
+            'Cuba', 'Jamaica', 'Haiti', 'Dominican Republic', 'Puerto Rico', 'Trinidad and Tobago',
+            'Barbados', 'Saint Lucia', 'Saint Vincent and the Grenadines', 'Grenada', 'Antigua and Barbuda',
+            'Saint Kitts and Nevis', 'Dominica', 'Bahamas', 'Turks and Caicos Islands', 'Cayman Islands',
+            'British Virgin Islands', 'US Virgin Islands', 'Anguilla', 'Montserrat', 'Guadeloupe', 'Martinique',
+            'Saint Martin', 'Saint Barthelemy', 'Aruba', 'Curacao', 'Bonaire', 'Sint Maarten'
+        ];
+
+        // Exact match
+        if (in_array($country, $realCountries)) {
+            return $country;
+        }
+
+        // Common variations
+        $variations = [
+            'USA' => 'United States', 'US' => 'United States', 'America' => 'United States',
+            'UK' => 'United Kingdom', 'Britain' => 'United Kingdom', 'England' => 'United Kingdom',
+            'UAE' => 'United Arab Emirates', 'Emirates' => 'United Arab Emirates',
+            'Deutschland' => 'Germany', 'Nederland' => 'Netherlands', 'Holland' => 'Netherlands',
+            'España' => 'Spain', 'Italia' => 'Italy', 'Brasil' => 'Brazil'
+        ];
+
+        if (isset($variations[$country])) {
+            return $variations[$country];
+        }
+
+        // Case-insensitive match
+        foreach ($realCountries as $realCountry) {
+            if (strcasecmp($country, $realCountry) === 0) {
+                return $realCountry;
+            }
+        }
+
+        return 'Unknown';
     }
 }

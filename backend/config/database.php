@@ -15,18 +15,85 @@ class Database {
         // Load environment variables from multiple sources
         $env = file_exists(__DIR__.'/.env') ? parse_ini_file(__DIR__.'/.env') : [];
 
-        // Priority: Railway MYSQL_* > System ENV > .env file > defaults
-        // Railway uses MYSQL_* variables, local development uses DB_* or .env
-        $this->host = $_ENV['MYSQL_HOST'] ?? $_ENV['DB_HOST'] ?? $env['DB_HOST'] ?? getenv('MYSQL_HOST') ?: getenv('DB_HOST') ?: 'localhost';
-        $this->db_name = $_ENV['MYSQL_DATABASE'] ?? $_ENV['DB_NAME'] ?? $env['DB_NAME'] ?? getenv('MYSQL_DATABASE') ?: getenv('DB_NAME') ?: 'shopify_reviews';
-        $this->username = $_ENV['MYSQL_USER'] ?? $_ENV['DB_USER'] ?? $env['DB_USER'] ?? getenv('MYSQL_USER') ?: getenv('DB_USER') ?: 'root';
-        $this->password = $_ENV['MYSQL_PASSWORD'] ?? $_ENV['DB_PASS'] ?? $env['DB_PASS'] ?? getenv('MYSQL_PASSWORD') ?: getenv('DB_PASS') ?: '';
-        $this->port = $_ENV['MYSQL_PORT'] ?? $_ENV['DB_PORT'] ?? $env['DB_PORT'] ?? getenv('MYSQL_PORT') ?: getenv('DB_PORT') ?: '3306';
+        // UNIVERSAL PLATFORM SUPPORT - Works with ANY hosting platform
+        // Priority: System ENV > .env file > defaults
+        // Supports: Railway (MYSQL_*), xCloud, cPanel, Heroku, DigitalOcean, AWS, etc.
 
-        // Debug logging for live server (remove after testing)
-        if (isset($_ENV['MYSQL_HOST']) || getenv('MYSQL_HOST')) {
-            error_log("Railway DB Config - Host: {$this->host}, DB: {$this->db_name}, User: {$this->username}");
+        $this->host = $this->getEnvValue([
+            'MYSQL_HOST', 'DB_HOST', 'DATABASE_HOST', 'CLEARDB_DATABASE_URL_HOST'
+        ], $env, 'localhost');
+
+        $this->db_name = $this->getEnvValue([
+            'MYSQL_DATABASE', 'DB_NAME', 'DATABASE_NAME', 'DB_DATABASE'
+        ], $env, 'shopify_reviews');
+
+        $this->username = $this->getEnvValue([
+            'MYSQL_USER', 'DB_USER', 'DATABASE_USER', 'DB_USERNAME'
+        ], $env, 'root');
+
+        $this->password = $this->getEnvValue([
+            'MYSQL_PASSWORD', 'DB_PASS', 'DATABASE_PASSWORD', 'DB_PASSWORD'
+        ], $env, '');
+
+        $this->port = $this->getEnvValue([
+            'MYSQL_PORT', 'DB_PORT', 'DATABASE_PORT'
+        ], $env, '3306');
+
+        // Enhanced debug logging for any live server
+        $isLiveServer = !in_array($this->host, ['localhost', '127.0.0.1']) ||
+                       getenv('RAILWAY_ENVIRONMENT') ||
+                       getenv('HEROKU_APP_NAME') ||
+                       $_SERVER['HTTP_HOST'] !== 'localhost:5173';
+
+        if ($isLiveServer) {
+            error_log("Live Server DB Config - Platform: " . $this->detectPlatform() .
+                     ", Host: {$this->host}, DB: {$this->db_name}, User: {$this->username}, Port: {$this->port}");
         }
+    }
+
+    /**
+     * Get environment value from multiple possible variable names
+     */
+    private function getEnvValue($varNames, $envFile, $default) {
+        foreach ($varNames as $varName) {
+            // Check $_ENV superglobal
+            if (isset($_ENV[$varName]) && $_ENV[$varName] !== '') {
+                return $_ENV[$varName];
+            }
+
+            // Check getenv()
+            $value = getenv($varName);
+            if ($value !== false && $value !== '') {
+                return $value;
+            }
+
+            // Check .env file
+            if (isset($envFile[$varName]) && $envFile[$varName] !== '') {
+                return $envFile[$varName];
+            }
+        }
+
+        return $default;
+    }
+
+    /**
+     * Detect hosting platform for better debugging
+     */
+    private function detectPlatform() {
+        if (getenv('RAILWAY_ENVIRONMENT')) return 'Railway';
+        if (getenv('HEROKU_APP_NAME')) return 'Heroku';
+        if (getenv('VERCEL')) return 'Vercel';
+        if (getenv('NETLIFY')) return 'Netlify';
+        if (strpos($_SERVER['HTTP_HOST'] ?? '', 'xcloud') !== false) return 'xCloud';
+        if (strpos($_SERVER['HTTP_HOST'] ?? '', 'cpanel') !== false) return 'cPanel';
+        if (strpos($_SERVER['HTTP_HOST'] ?? '', 'digitalocean') !== false) return 'DigitalOcean';
+        if (strpos($_SERVER['HTTP_HOST'] ?? '', 'aws') !== false) return 'AWS';
+        if (strpos($_SERVER['HTTP_HOST'] ?? '', 'azure') !== false) return 'Azure';
+        if (strpos($_SERVER['HTTP_HOST'] ?? '', 'godaddy') !== false) return 'GoDaddy';
+        if (strpos($_SERVER['HTTP_HOST'] ?? '', 'hostgator') !== false) return 'HostGator';
+        if (strpos($_SERVER['HTTP_HOST'] ?? '', 'bluehost') !== false) return 'Bluehost';
+
+        return 'Unknown Platform';
     }
 
     public function getConnection() {

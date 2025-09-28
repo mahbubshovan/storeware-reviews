@@ -6,16 +6,16 @@
  */
 
 require_once __DIR__ . '/../config/cors.php';
-require_once __DIR__ . '/../utils/DatabaseManager.php';
+require_once __DIR__ . '/../config/database.php';
 
 header('Content-Type: application/json');
 
 try {
     $appName = isset($_GET['app_name']) ? $_GET['app_name'] : null;
     $metric = isset($_GET['metric']) ? $_GET['metric'] : 'all';
-    
-    $dbManager = new DatabaseManager();
-    $conn = $dbManager->getConnection();
+
+    $database = new Database();
+    $conn = $database->getConnection();
     
     if ($appName) {
         // Get stats for specific app
@@ -107,7 +107,7 @@ function getAppStats($conn, $appName) {
 }
 
 function getAllAppsStats($conn) {
-    $apps = ['StoreSEO', 'StoreFAQ', 'EasyFlow', 'TrustSync', 'Vitals', 'BetterDocs FAQ', 'Vidify'];
+    $apps = ['StoreSEO', 'StoreFAQ', 'EasyFlow', 'TrustSync', 'BetterDocs FAQ Knowledge Base', 'Vidify'];
     $allStats = [];
     
     foreach ($apps as $appName) {
