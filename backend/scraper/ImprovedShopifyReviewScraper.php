@@ -222,29 +222,50 @@ class ImprovedShopifyReviewScraper {
     }
     
     /**
-     * Fetch page with improved error handling
+     * Fetch page with improved error handling and automatic retry
      */
-    private function fetchPage($url) {
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        
-        $html = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
-        curl_close($ch);
-        
-        if ($httpCode !== 200 || !$html || $error) {
-            echo "❌ HTTP $httpCode, Error: $error\n";
-            return false;
+    private function fetchPage($url, $maxRetries = 3) {
+        $attempt = 0;
+
+        while ($attempt < $maxRetries) {
+            $attempt++;
+
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+            curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+
+            $html = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $error = curl_error($ch);
+            curl_close($ch);
+
+            // Success - return the HTML
+            if ($httpCode === 200 && $html && !$error) {
+                if ($attempt > 1) {
+                    echo "✅ Success on attempt $attempt\n";
+                }
+                return $html;
+            }
+
+            // Failed - log and retry if attempts remaining
+            echo "❌ Attempt $attempt failed: HTTP $httpCode" . ($error ? ", Error: $error" : "") . "\n";
+
+            if ($attempt < $maxRetries) {
+                // Exponential backoff: 2s, 4s, 8s
+                $waitTime = pow(2, $attempt);
+                echo "⏳ Waiting {$waitTime}s before retry...\n";
+                sleep($waitTime);
+            }
         }
-        
-        return $html;
+
+        // All retries exhausted
+        echo "❌ Failed after $maxRetries attempts\n";
+        return false;
     }
     
     /**
