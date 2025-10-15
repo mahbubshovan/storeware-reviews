@@ -202,7 +202,7 @@ class ImprovedShopifyReviewScraper {
             }
 
             // Add delay to be respectful to Shopify servers
-            usleep(800000); // 0.8 second delay
+            usleep(2000000); // 2.0 second delay
         }
 
         if (!$silent) echo "🎯 Final count for $appName: " . count($allReviews) . " unique reviews\n";
