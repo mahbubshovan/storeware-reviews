@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import './Access.css';
 
 const AccessTabbed = () => {
@@ -47,13 +47,8 @@ const AccessTabbed = () => {
   const [editValue, setEditValue] = useState('');
   const [scrollPosition, setScrollPosition] = useState(0);
 
-  useEffect(() => {
-    fetchTabReviews(activeTab, tabPages[activeTab]);
-  }, [activeTab]);
-
-
-
-  const fetchTabReviews = async (appName, page = 1) => {
+  // Memoize fetchTabReviews to prevent unnecessary re-renders and duplicate calls
+  const fetchTabReviews = useCallback(async (appName, page = 1) => {
     setLoading(true);
     setError(null);
 
@@ -83,13 +78,19 @@ const AccessTabbed = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []); // Empty dependency array since function doesn't depend on any props or state
+
+  // Fetch reviews when activeTab changes - single source of truth for tab navigation
+  // Only depends on activeTab to prevent duplicate calls when tabPages changes
+  useEffect(() => {
+    fetchTabReviews(activeTab, tabPages[activeTab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, fetchTabReviews]);
 
   const handleTabChange = (appName) => {
     if (appName !== activeTab) {
       setActiveTab(appName);
-      // Use the stored page for this tab
-      fetchTabReviews(appName, tabPages[appName]);
+      // Don't call fetchTabReviews here - let useEffect handle it to avoid duplicate requests
     }
   };
 
