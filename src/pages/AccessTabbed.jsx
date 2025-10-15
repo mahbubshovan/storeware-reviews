@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import './Access.css';
 
 const AccessTabbed = () => {
@@ -47,15 +47,38 @@ const AccessTabbed = () => {
   const [editValue, setEditValue] = useState('');
   const [scrollPosition, setScrollPosition] = useState(0);
 
-  // Memoize fetchTabReviews to prevent unnecessary re-renders and duplicate calls
+  // Request deduplication - track ongoing requests to prevent duplicates
+  const ongoingRequestRef = useRef(null);
+  const lastRequestKeyRef = useRef(null);
+
+  // Memoize fetchTabReviews with request deduplication
   const fetchTabReviews = useCallback(async (appName, page = 1) => {
+    // Create a unique key for this request
+    const requestKey = `${appName}-${page}`;
+
+    // If same request is already in progress, skip it
+    if (ongoingRequestRef.current === requestKey) {
+      console.log('⚠️ Duplicate request prevented:', requestKey);
+      return;
+    }
+
+    // If this is the exact same request as the last one, skip it
+    if (lastRequestKeyRef.current === requestKey) {
+      console.log('⚠️ Duplicate request prevented (same as last):', requestKey);
+      return;
+    }
+
+    // Mark this request as ongoing
+    ongoingRequestRef.current = requestKey;
+    lastRequestKeyRef.current = requestKey;
+
     setLoading(true);
     setError(null);
 
     try {
-      // Use the new cached API for fast tab switching and accurate counts
+      console.log('✅ Fetching reviews:', requestKey);
       const response = await fetch(
-        `/backend/api/access-reviews-cached.php?app=${encodeURIComponent(appName)}&page=${page}&limit=15&_t=${Date.now()}&_cache_bust=${Math.random()}`
+        `/backend/api/access-reviews-cached.php?app=${encodeURIComponent(appName)}&page=${page}&limit=15`
       );
 
       if (!response.ok) {
@@ -77,15 +100,16 @@ const AccessTabbed = () => {
       setReviews([]);
     } finally {
       setLoading(false);
+      // Clear ongoing request marker
+      ongoingRequestRef.current = null;
     }
   }, []); // Empty dependency array since function doesn't depend on any props or state
 
   // Fetch reviews when activeTab changes - single source of truth for tab navigation
-  // Only depends on activeTab to prevent duplicate calls when tabPages changes
   useEffect(() => {
-    fetchTabReviews(activeTab, tabPages[activeTab]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, fetchTabReviews]);
+    const currentPage = tabPages[activeTab];
+    fetchTabReviews(activeTab, currentPage);
+  }, [activeTab]); // Only depend on activeTab, not tabPages or fetchTabReviews
 
   const handleTabChange = (appName) => {
     if (appName !== activeTab) {
