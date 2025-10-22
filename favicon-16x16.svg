@@ -1,0 +1,7 @@
+<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Light green parallelogram (back) -->
+  <path d="M2 4 L9 4 L12 12 L5 12 Z" fill="#8bc34a"/>
+  
+  <!-- Darker green parallelogram (front) -->
+  <path d="M4 2 L11 2 L14 10 L7 10 Z" fill="#689f38"/>
+</svg>

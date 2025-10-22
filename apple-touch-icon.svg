@@ -1,0 +1,16 @@
+<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background with rounded corners for iOS -->
+  <rect width="180" height="180" rx="40" fill="#f8fafc"/>
+  
+  <!-- Light green parallelogram (back) -->
+  <path d="M30 45 L105 45 L135 135 L60 135 Z" fill="#8bc34a"/>
+  
+  <!-- Darker green parallelogram (front) -->
+  <path d="M45 30 L120 30 L150 120 L75 120 Z" fill="#689f38"/>
+  
+  <!-- Highlight effect -->
+  <path d="M45 30 L120 30 L110 45 L35 45 Z" fill="#9ccc65" opacity="0.8"/>
+  
+  <!-- Additional depth with shadow -->
+  <path d="M60 135 L135 135 L150 120 L75 120 Z" fill="#558b2f" opacity="0.6"/>
+</svg>

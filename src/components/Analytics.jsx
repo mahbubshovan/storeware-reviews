@@ -71,11 +71,9 @@ const Analytics = () => {
         url += `&filter=${filter}`;
       }
 
-      console.log('Fetching reviews with filter:', filter, 'URL:', url);
       const response = await fetch(url);
       const data = await response.json();
 
-      console.log('Filter response:', filter, 'Reviews count:', data.data?.reviews?.length);
       if (data.success && data.data && data.data.reviews) {
         setLatestReviews(data.data.reviews);
       }
@@ -115,7 +113,6 @@ const Analytics = () => {
   }, [selectedApp]);
 
   useEffect(() => {
-    console.log('Filter changed to:', reviewsFilter, 'for app:', selectedApp);
     if (selectedApp && reviewsFilter !== 'custom') {
       fetchFilteredReviews(selectedApp, reviewsFilter);
     }
