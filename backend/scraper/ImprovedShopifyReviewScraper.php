@@ -246,25 +246,25 @@ class ImprovedShopifyReviewScraper {
 
             // Success - return the HTML
             if ($httpCode === 200 && $html && !$error) {
-                if ($attempt > 1) {
-                    echo "✅ Success on attempt $attempt\n";
-                }
+//                if ($attempt > 1) {
+//                    echo "✅ Success on attempt $attempt\n";
+//                }
                 return $html;
             }
 
-            // Failed - log and retry if attempts remaining
-            echo "❌ Attempt $attempt failed: HTTP $httpCode" . ($error ? ", Error: $error" : "") . "\n";
+//            // Failed - log and retry if attempts remaining
+//            echo "❌ Attempt $attempt failed: HTTP $httpCode" . ($error ? ", Error: $error" : "") . "\n";
 
             if ($attempt < $maxRetries) {
                 // Exponential backoff: 2s, 4s, 8s
                 $waitTime = pow(2, $attempt);
-                echo "⏳ Waiting {$waitTime}s before retry...\n";
+//                echo "⏳ Waiting {$waitTime}s before retry...\n";
                 sleep($waitTime);
             }
         }
 
-        // All retries exhausted
-        echo "❌ Failed after $maxRetries attempts\n";
+//        // All retries exhausted
+//        echo "❌ Failed after $maxRetries attempts\n";
         return false;
     }
     
