@@ -78,7 +78,7 @@ const Analytics = () => {
         setLatestReviews(data.data.reviews);
       }
     } catch (err) {
-      console.error('Error fetching filtered reviews:', err);
+      // Error handled silently
     }
   };
 
