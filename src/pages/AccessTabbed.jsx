@@ -321,8 +321,7 @@ const AccessTabbed = () => {
   return (
     <div className="access-container">
       <div className="access-header">
-        <h1>🔥 COUNTRY NAMES FIXED! Access Reviews - App Tabs</h1>
-        <p>Browse reviews with name assignments by app</p>
+        <h1>Access Reviews</h1>
         
         {statistics && (
           <div className="tab-statistics">
@@ -383,8 +382,8 @@ const AccessTabbed = () => {
         ) : (
           <>
             <div className="reviews-header">
-              <h2>🔥 FIXED! {activeTab} Reviews ({pagination.total_items} assigned)</h2>
-              <p>Page {pagination.current_page} of {pagination.total_pages}</p>
+              <h2>{activeTab} Reviews Details</h2>
+              <p>Page {pagination.current_page} of {pagination.total_pages} | Total: {pagination.total_items} reviews</p>
             </div>
 
             {reviews.length === 0 ? (
