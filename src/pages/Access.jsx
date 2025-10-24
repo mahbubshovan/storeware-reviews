@@ -269,7 +269,7 @@ const Access = () => {
           <div className="stats-grid">
             <div className="stat-card">
               <p className="stat-label">Total Reviews</p>
-              <p className="stat-value total">{stats.total_reviews}</p>
+              <p className="stat-value total">{stats.shopify_total_reviews || stats.total_reviews}</p>
             </div>
 
             <div className="stat-card">

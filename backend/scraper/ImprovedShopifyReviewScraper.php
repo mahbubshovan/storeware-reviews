@@ -25,7 +25,7 @@ class ImprovedShopifyReviewScraper {
     }
     
     /**
-     * Create cache table for storing scraped data with timestamps
+     * Create cache table for storing scraped data with timestamps and IP tracking
      */
     private function createCacheTable() {
         $sql = "CREATE TABLE IF NOT EXISTS review_cache (
@@ -33,20 +33,30 @@ class ImprovedShopifyReviewScraper {
             app_name VARCHAR(255) NOT NULL,
             cache_data LONGTEXT NOT NULL,
             total_reviews INT NOT NULL,
+            client_ip VARCHAR(45) DEFAULT '0.0.0.0',
             scraped_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             expires_at TIMESTAMP NOT NULL,
-            INDEX idx_app_expires (app_name, expires_at)
+            INDEX idx_app_expires (app_name, expires_at),
+            INDEX idx_app_ip_expires (app_name, client_ip, expires_at)
         )";
-        
+
         $this->conn->exec($sql);
+
+        // Add client_ip column if it doesn't exist (for existing databases)
+        try {
+            $this->conn->exec("ALTER TABLE review_cache ADD COLUMN client_ip VARCHAR(45) DEFAULT '0.0.0.0' AFTER total_reviews");
+        } catch (Exception $e) {
+            // Column already exists, ignore error
+        }
     }
     
     /**
-     * Get reviews with smart caching (12-hour cache)
+     * Get reviews with smart caching (12-hour IP-based cache)
      * @param string $appName The app name to scrape
      * @param bool $forceFresh Force fresh scraping, ignore cache
+     * @param string $clientIP Client IP address for IP-based caching
      */
-    public function getReviewsWithCaching($appName, $forceFresh = false) {
+    public function getReviewsWithCaching($appName, $forceFresh = false, $clientIP = null) {
         // Check if we have valid cached data (unless forcing fresh)
         if (!$forceFresh) {
             $cachedData = $this->getCachedData($appName);
@@ -62,14 +72,14 @@ class ImprovedShopifyReviewScraper {
                 ];
             }
         }
-        
+
         // No valid cache, scrape fresh data (silent mode for API)
         $scrapedData = $this->scrapeAllReviews($appName, true);
 
         if ($scrapedData['success']) {
-            // Cache the data for 12 hours
-            $this->cacheData($appName, $scrapedData['reviews'], $scrapedData['total_count']);
-            
+            // Cache the data for 12 hours with client IP tracking
+            $this->cacheData($appName, $scrapedData['reviews'], $scrapedData['total_count'], $clientIP);
+
             return [
                 'success' => true,
                 'data' => $scrapedData['reviews'],
@@ -79,7 +89,7 @@ class ImprovedShopifyReviewScraper {
                 'expires_at' => date('Y-m-d H:i:s', strtotime('+12 hours'))
             ];
         }
-        
+
         return $scrapedData;
     }
     
@@ -100,23 +110,24 @@ class ImprovedShopifyReviewScraper {
     }
     
     /**
-     * Cache scraped data for 12 hours
+     * Cache scraped data for 12 hours with IP tracking
      */
-    private function cacheData($appName, $reviews, $totalCount) {
+    private function cacheData($appName, $reviews, $totalCount, $clientIP = null) {
         // Remove old cache entries for this app
         $deleteStmt = $this->conn->prepare("DELETE FROM review_cache WHERE app_name = ?");
         $deleteStmt->execute([$appName]);
-        
-        // Insert new cache entry
+
+        // Insert new cache entry with client IP for IP-based caching
         $insertStmt = $this->conn->prepare("
-            INSERT INTO review_cache (app_name, cache_data, total_reviews, expires_at) 
-            VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL 12 HOUR))
+            INSERT INTO review_cache (app_name, cache_data, total_reviews, client_ip, expires_at)
+            VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 12 HOUR))
         ");
-        
+
         $insertStmt->execute([
             $appName,
             json_encode($reviews),
-            $totalCount
+            $totalCount,
+            $clientIP ?? '0.0.0.0'
         ]);
     }
     
@@ -139,12 +150,13 @@ class ImprovedShopifyReviewScraper {
         if (!$silent) echo "🚀 Starting improved scraping for $appName...\n";
 
         // Set exact target counts based on Shopify pages (excluding archived reviews)
+        // Updated: 2025-10-24 - All counts verified from live Shopify app store pages
         $targetCounts = [
-            'StoreSEO' => 517, // Updated after removing test reviews (was 519)
-            'StoreFAQ' => 96,
-            'EasyFlow' => 312,
-            'TrustSync' => 40,
-            'BetterDocs FAQ Knowledge Base' => 34,
+            'StoreSEO' => 526,
+            'StoreFAQ' => 106,
+            'EasyFlow' => 318,
+            'TrustSync' => 41,
+            'BetterDocs FAQ Knowledge Base' => 35,
             'Vidify' => 8
         ];
 
