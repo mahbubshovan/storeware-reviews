@@ -328,11 +328,16 @@ const Access = () => {
               <p>No reviews from the last 30 days. Reviews will appear here automatically when apps are scraped.</p>
             </div>
           ) : (
-            Object.entries(reviews).map(([appName, appReviews]) => (
+            Object.entries(reviews).map(([appName, appReviews]) => {
+              // Count assigned reviews for this app
+              const assignedCount = appReviews.filter(r => r.earned_by && r.earned_by.trim() !== '').length;
+              const totalCount = appReviews.length;
+
+              return (
               <div key={appName} className="app-section">
                 <h2>
                   {appName}
-                  <span className="app-badge">{appReviews.length} reviews</span>
+                  <span className="app-badge">{assignedCount} assigned / {totalCount} total</span>
                 </h2>
                 <div className="reviews-grid">
                   {appReviews.map((review) => (
@@ -399,7 +404,8 @@ const Access = () => {
                   ))}
                 </div>
               </div>
-            ))
+            );
+            })
           )}
         </div>
       </div>
