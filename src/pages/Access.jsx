@@ -258,9 +258,6 @@ const Access = () => {
         <div className="access-header">
           <div className="access-header-content">
             <h1>Access Reviews</h1>
-            <p>
-              Manage and assign reviews from the last 30 days across all apps. Data is automatically updated when apps are scraped.
-            </p>
           </div>
         </div>
 
@@ -335,10 +332,12 @@ const Access = () => {
 
               return (
               <div key={appName} className="app-section">
-                <h2>
-                  {appName}
-                  <span className="app-badge">{assignedCount} assigned / {totalCount} total</span>
-                </h2>
+                <div className="app-section-header">
+                  <div className="app-section-title">
+                    <h2>{appName} Reviews Details</h2>
+                    <span className="app-badge">{assignedCount} assigned / {totalCount} total</span>
+                  </div>
+                </div>
                 <div className="reviews-grid">
                   {appReviews.map((review) => (
                     <div key={review.id} className="review-item">
