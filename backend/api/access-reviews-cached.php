@@ -191,7 +191,7 @@ function handleGetCachedReviews($conn) {
 
     // Use correct totals that match live Shopify pages
     $correctTotals = [
-        'StoreSEO' => 520,
+        'StoreSEO' => 526,
         'StoreFAQ' => 1000, // Will be updated when we check live page
         'EasyFlow' => 1000, // Will be updated when we check live page
         'TrustSync' => 1000, // Will be updated when we check live page
