@@ -48,12 +48,19 @@ const manageIndexPlugin = () => {
         closeBundle() {
             const templatePath = resolve(process.cwd(), 'index.template.html')
             const indexPath = resolve(process.cwd(), 'index.html')
+            const publicIndexPath = resolve(process.cwd(), 'public-test', 'index.html')
 
             try {
                 // Rename the built index.template.html to index.html
                 if (existsSync(templatePath)) {
                     renameSync(templatePath, indexPath)
                     console.log('✓ Renamed built index.template.html to index.html')
+                }
+
+                // Copy the built index.html to public-test folder
+                if (existsSync(indexPath)) {
+                    copyFileSync(indexPath, publicIndexPath)
+                    console.log('✓ Copied built index.html to public-test folder')
                 }
 
                 // Restore the source template
@@ -69,6 +76,7 @@ const manageIndexPlugin = () => {
 // https://vite.dev/config/
 export default defineConfig({
     plugins: [react(), manageIndexPlugin()],
+    publicDir: 'public-test',
     build: {
         outDir: '',
         assetsDir: 'assets',
