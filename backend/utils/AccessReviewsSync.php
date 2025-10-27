@@ -347,24 +347,22 @@ class AccessReviewsSync {
             $stmt->execute([$dateFilter]);
             $reviewsByApp = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Get Shopify totals for each app (correct counts from live Shopify pages)
-            // Updated: 2025-10-24 - All counts verified from live Shopify app store pages
-            $shopifyTotals = [
-                'StoreSEO' => 526,
-                'StoreFAQ' => 106,
-                'EasyFlow' => 318,
-                'TrustSync' => 41,
-                'BetterDocs FAQ Knowledge Base' => 35,
-                'Vidify' => 8
-            ];
-
-            // Calculate total Shopify reviews for this date range
+            // Get actual total counts from main reviews table for each app
             $totalShopifyReviews = 0;
+            $appTotals = [];
+
             foreach ($reviewsByApp as $app) {
                 $appName = $app['app_name'];
-                if (isset($shopifyTotals[$appName])) {
-                    $totalShopifyReviews += $shopifyTotals[$appName];
-                }
+
+                // Get actual total from reviews table
+                $totalStmt = $conn->prepare("
+                    SELECT COUNT(*) as total FROM reviews
+                    WHERE app_name = ? AND is_active = TRUE
+                ");
+                $totalStmt->execute([$appName]);
+                $appTotal = $totalStmt->fetchColumn();
+                $appTotals[$appName] = $appTotal;
+                $totalShopifyReviews += $appTotal;
             }
 
             return [

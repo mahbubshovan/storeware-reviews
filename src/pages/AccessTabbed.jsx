@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import './Access.css';
+import { useCache } from '../context/CacheContext';
 
 const AccessTabbed = () => {
+  // Use global cache from context
+  const { getCachedData, setCachedData } = useCache();
+
   // App configuration
   const apps = [
     { name: 'StoreSEO', slug: 'storeseo' },
@@ -51,10 +55,11 @@ const AccessTabbed = () => {
   const ongoingRequestRef = useRef(null);
   const lastRequestKeyRef = useRef(null);
 
-  // Memoize fetchTabReviews with request deduplication
+  // Memoize fetchTabReviews with request deduplication and global caching
   const fetchTabReviews = useCallback(async (appName, page = 1) => {
     // Create a unique key for this request
     const requestKey = `${appName}-${page}`;
+    const cacheKey = `access_reviews_${appName}_page${page}`;
 
     // If same request is already in progress, skip it
     if (ongoingRequestRef.current === requestKey) {
@@ -68,6 +73,18 @@ const AccessTabbed = () => {
       return;
     }
 
+    // Check global cache first
+    const cachedData = getCachedData(appName, null, cacheKey);
+    if (cachedData) {
+      console.log('✅ Loading from global cache:', cacheKey);
+      setReviews(cachedData.reviews || []);
+      setPagination(cachedData.pagination || {});
+      setStatistics(cachedData.statistics || {});
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     // Mark this request as ongoing
     ongoingRequestRef.current = requestKey;
     lastRequestKeyRef.current = requestKey;
@@ -76,7 +93,7 @@ const AccessTabbed = () => {
     setError(null);
 
     try {
-      console.log('✅ Fetching reviews:', requestKey);
+      console.log('✅ Fetching reviews from API:', requestKey);
       const response = await fetch(
         `/backend/api/access-reviews-cached.php?app=${encodeURIComponent(appName)}&page=${page}&limit=15`
       );
@@ -91,6 +108,8 @@ const AccessTabbed = () => {
         setReviews(data.data.reviews || []);
         setPagination(data.data.pagination || {});
         setStatistics(data.data.statistics || {});
+        // Cache the data globally
+        setCachedData(appName, data.data, null, cacheKey);
       } else {
         throw new Error(data.error || 'Failed to fetch reviews');
       }
@@ -103,7 +122,7 @@ const AccessTabbed = () => {
       // Clear ongoing request marker
       ongoingRequestRef.current = null;
     }
-  }, []); // Empty dependency array since function doesn't depend on any props or state
+  }, [getCachedData, setCachedData]); // Add cache functions to dependencies
 
   // Fetch reviews when activeTab changes - single source of truth for tab navigation
   useEffect(() => {

@@ -52,6 +52,8 @@ class ImprovedShopifyReviewScraper {
     
     /**
      * Get reviews with smart caching (12-hour IP-based cache)
+     * Uses incremental scraping to only check first 3 pages for new reviews
+     * Much faster than full scraping - only takes 10-15 seconds
      * @param string $appName The app name to scrape
      * @param bool $forceFresh Force fresh scraping, ignore cache
      * @param string $clientIP Client IP address for IP-based caching
@@ -73,24 +75,85 @@ class ImprovedShopifyReviewScraper {
             }
         }
 
-        // No valid cache, scrape fresh data (silent mode for API)
-        $scrapedData = $this->scrapeAllReviews($appName, true);
+        // Check if database already has reviews for this app
+        $dbCount = $this->getReviewCountFromDatabase($appName);
 
-        if ($scrapedData['success']) {
-            // Cache the data for 12 hours with client IP tracking
-            $this->cacheData($appName, $scrapedData['reviews'], $scrapedData['total_count'], $clientIP);
+        if ($dbCount > 0) {
+            // Database has reviews, use incremental scraping (only check first 3 pages for new reviews)
+            // This is much faster than full scraping and preserves existing data
+            $incrementalScraper = new \IncrementalShopifyReviewScraper();
+            $incrementalResult = $incrementalScraper->scrapeRecentReviewsOnly($appName, true);
 
-            return [
-                'success' => true,
-                'data' => $scrapedData['reviews'],
-                'total_reviews' => $scrapedData['total_count'],
-                'cache_status' => 'miss',
-                'scraped_at' => date('Y-m-d H:i:s'),
-                'expires_at' => date('Y-m-d H:i:s', strtotime('+12 hours'))
-            ];
+            if ($incrementalResult['success']) {
+                // Add new reviews to database
+                $addResult = $incrementalScraper->addNewReviewsToDatabase($appName, $incrementalResult['new_reviews']);
+
+                // Get all reviews from database (including existing ones)
+                $allReviews = $this->getAllReviewsFromDatabase($appName);
+
+                // Cache the data for 12 hours with client IP tracking
+                $this->cacheData($appName, $allReviews, count($allReviews), $clientIP);
+
+                return [
+                    'success' => true,
+                    'data' => $allReviews,
+                    'total_reviews' => count($allReviews),
+                    'cache_status' => 'miss',
+                    'new_reviews_added' => $incrementalResult['new_reviews_count'],
+                    'scraped_at' => date('Y-m-d H:i:s'),
+                    'expires_at' => date('Y-m-d H:i:s', strtotime('+12 hours'))
+                ];
+            }
+        } else {
+            // Database is empty, do a full scrape to populate it
+            $scrapedData = $this->scrapeAllReviews($appName, true);
+
+            if ($scrapedData['success']) {
+                // Cache the data for 12 hours with client IP tracking
+                $this->cacheData($appName, $scrapedData['reviews'], $scrapedData['total_count'], $clientIP);
+
+                return [
+                    'success' => true,
+                    'data' => $scrapedData['reviews'],
+                    'total_reviews' => $scrapedData['total_count'],
+                    'cache_status' => 'miss',
+                    'scraped_at' => date('Y-m-d H:i:s'),
+                    'expires_at' => date('Y-m-d H:i:s', strtotime('+12 hours'))
+                ];
+            }
         }
 
-        return $scrapedData;
+        return [
+            'success' => false,
+            'error' => 'Failed to scrape reviews',
+            'data' => []
+        ];
+    }
+
+    /**
+     * Get review count from database
+     */
+    private function getReviewCountFromDatabase($appName) {
+        $stmt = $this->conn->prepare("SELECT COUNT(*) as total FROM reviews WHERE app_name = ?");
+        $stmt->execute([$appName]);
+        return $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+    }
+
+    /**
+     * Get all reviews for an app from database
+     */
+    private function getAllReviewsFromDatabase($appName) {
+        $stmt = $this->conn->prepare("
+            SELECT
+                id, app_name, store_name, country_name, rating,
+                review_content, review_date, earned_by, created_at, updated_at
+            FROM reviews
+            WHERE app_name = ? AND is_active = TRUE
+            ORDER BY review_date DESC
+        ");
+
+        $stmt->execute([$appName]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
     
     /**
@@ -133,6 +196,8 @@ class ImprovedShopifyReviewScraper {
     
     /**
      * Scrape all reviews with improved accuracy
+     * IMPORTANT: Scrapes ALL reviews, not just up to target count
+     * This ensures all reviews are captured and persisted in the database
      */
     public function scrapeAllReviews($appName, $silent = false) {
         if (!isset($this->appUrls[$appName])) {
@@ -160,7 +225,7 @@ class ImprovedShopifyReviewScraper {
             'Vidify' => 8
         ];
 
-        $maxPages = 60; // Enough pages for any app
+        $maxPages = 100; // Increased to scrape all pages
         $targetCount = $targetCounts[$appName] ?? 999999;
 
         for ($page = 1; $page <= $maxPages; $page++) {
@@ -180,33 +245,18 @@ class ImprovedShopifyReviewScraper {
                 break;
             }
 
-            // Filter out duplicate reviews and limit to exact target count
+            // Filter out duplicate reviews - DO NOT STOP AT TARGET COUNT
+            // We need to scrape ALL reviews to ensure complete data
             $newReviews = [];
             foreach ($pageReviews as $review) {
-                // Stop if we've reached the target count for StoreSEO
-                if (count($allReviews) >= $targetCount) {
-                    break;
-                }
-
                 $reviewId = $this->generateReviewId($review);
                 if (!isset($seenReviewIds[$reviewId])) {
                     $seenReviewIds[$reviewId] = true;
                     $newReviews[] = $review;
-
-                    // Stop immediately if we reach target count
-                    if (count($allReviews) + count($newReviews) >= $targetCount) {
-                        break;
-                    }
                 }
             }
 
             $allReviews = array_merge($allReviews, $newReviews);
-
-            // Stop if we've reached the target count
-            if (count($allReviews) >= $targetCount) {
-                if (!$silent) echo "🎯 Reached exact target count of $targetCount reviews\n";
-                break;
-            }
 
             if (!$silent) {
                 echo "✅ Page $page: Found " . count($pageReviews) . " reviews (" . count($newReviews) . " new, " . (count($pageReviews) - count($newReviews)) . " duplicates)\n";
@@ -333,8 +383,8 @@ class ImprovedShopifyReviewScraper {
             $reviewDate = '';
             if ($dateNodes->length > 0) {
                 $dateText = trim($dateNodes->item(0)->textContent);
-                // Parse date like "September 11, 2025"
-                $reviewDate = date('Y-m-d', strtotime($dateText));
+                // Parse date like "September 11, 2025" or "Edited October 6, 2025"
+                $reviewDate = $this->parseReviewDateSafely($dateText);
             }
 
             // Extract review content - this selector is working
@@ -493,5 +543,38 @@ class ImprovedShopifyReviewScraper {
         }
 
         return 'Unknown';
+    }
+
+    /**
+     * Safely parse review date from various formats
+     * Handles cases like "Edited October 6, 2025" where strtotime() might fail
+     */
+    private function parseReviewDateSafely($dateText) {
+        $dateText = trim($dateText);
+
+        // First, try to extract the date pattern from the text
+        // This handles cases like "Edited October 6, 2025" or "October 6, 2025"
+        if (preg_match('/\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),\s+(\d{4})\b/', $dateText, $matches)) {
+            $monthName = $matches[1];
+            $day = $matches[2];
+            $year = $matches[3];
+
+            // Construct a clean date string that strtotime can reliably parse
+            $cleanDateStr = "$monthName $day, $year";
+            $timestamp = strtotime($cleanDateStr);
+
+            if ($timestamp !== false) {
+                return date('Y-m-d', $timestamp);
+            }
+        }
+
+        // Fallback: try parsing the entire text as-is
+        $timestamp = strtotime($dateText);
+        if ($timestamp !== false) {
+            return date('Y-m-d', $timestamp);
+        }
+
+        // If all parsing fails, return empty string
+        return '';
     }
 }

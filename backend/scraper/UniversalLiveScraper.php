@@ -18,52 +18,70 @@ class UniversalLiveScraper {
     /**
      * Scrape any Shopify app reviews live
      */
-    public function scrapeApp($appSlug, $appName = null) {
+    public function scrapeApp($appSlug, $appName = null, $targetCount = null) {
         if (!$appName) {
             $appName = ucfirst($appSlug);
         }
-        
+
         echo "🔴 UNIVERSAL LIVE SCRAPER - NO MOCK DATA\n";
         echo "🎯 App: $appName ($appSlug)\n";
         echo "🌐 Scraping ONLY from live Shopify pages...\n";
-        
+
         $baseUrl = "https://apps.shopify.com/$appSlug/reviews";
-        
-        // Clear existing data for this app
-        $this->clearAppData($appName);
-        
+
+        // If no target count specified, get it from the live Shopify page
+        if ($targetCount === null) {
+            $mainUrl = "https://apps.shopify.com/$appSlug/reviews";
+            $mainHtml = $this->fetchPage($mainUrl);
+            if ($mainHtml && preg_match('/"ratingCount":(\d+)/', $mainHtml, $matches)) {
+                $targetCount = (int)$matches[1];
+                echo "📊 Target count from Shopify: $targetCount reviews\n";
+            }
+        }
+
         $allReviews = [];
 
         // Scrape ALL pages until no more reviews found (complete historical data)
         for ($page = 1; $page <= 200; $page++) {
             $url = $baseUrl . "?sort_by=newest&page=$page";
             echo "📄 Fetching page $page: $url\n";
-            
+
             $html = $this->fetchPage($url);
             if (!$html) {
                 echo "❌ Failed to fetch page $page - STOPPING\n";
                 break;
             }
-            
+
+            // Add delay between requests to avoid rate limiting
+            if ($page < 200) {
+                sleep(1);
+            }
+
             $pageReviews = $this->parseReviewsFromHTML($html);
             if (empty($pageReviews)) {
                 echo "⚠️ No reviews found on page $page - STOPPING\n";
                 break;
             }
-            
+
             $addedFromPage = 0;
             $oldestOnPage = null;
-            
+
             // Add ALL reviews from this page (no date filtering)
             foreach ($pageReviews as $review) {
                 $allReviews[] = $review;
                 $addedFromPage++;
                 echo "✅ Live: {$review['review_date']} - {$review['rating']}★ - {$review['store_name']}\n";
+
+                // Stop if we've reached the target count
+                if ($targetCount !== null && count($allReviews) >= $targetCount) {
+                    echo "\n✅ Reached target count of $targetCount reviews\n";
+                    break 2; // Break out of both loops
+                }
             }
 
-            echo "📊 Page $page: Found " . count($pageReviews) . " reviews, added $addedFromPage total\n";
+            echo "📊 Page $page: Found " . count($pageReviews) . " reviews, total so far: " . count($allReviews) . "\n";
         }
-        
+
         if (empty($allReviews)) {
             echo "⚠️ No recent reviews found, trying to scrape ALL reviews for rating calculation...\n";
 
@@ -75,100 +93,104 @@ class UniversalLiveScraper {
                 return ['success' => false, 'message' => 'No live reviews found', 'count' => 0];
             } else {
                 echo "✅ Found " . count($allHistoricalReviews) . " historical reviews for $appName\n";
+                $allReviews = $allHistoricalReviews;
+            }
+        }
 
-                // Save all historical reviews to both old table and new repository
-                $saved = 0;
-                foreach ($allHistoricalReviews as $review) {
-                    // Save to old table for backward compatibility
-                    if ($this->saveReview($appName, $review)) {
-                        $saved++;
-                    }
+        // Only clear data if we successfully scraped reviews
+        if (!empty($allReviews)) {
+            $this->clearAppData($appName);
 
-                    // Save to new repository for enhanced functionality
-                    $this->repository->addReview(
-                        $appName,
-                        $review['store_name'],
-                        $review['country_name'],
-                        $review['rating'],
-                        $review['review_content'],
-                        $review['review_date'],
-                        'live_scrape'
-                    );
+            // Save all reviews to both old table and new repository
+            $saved = 0;
+            foreach ($allReviews as $review) {
+                // Save to old table for backward compatibility
+                if ($this->saveReview($appName, $review)) {
+                    $saved++;
                 }
 
-                // Update metadata
-                $this->updateAppMetadata($appName, $this->fetchPage($baseUrl));
-
-                echo "🎯 HISTORICAL SCRAPING COMPLETE: $saved reviews saved for $appName\n";
-                return ['success' => true, 'message' => "Scraped $saved historical reviews", 'count' => $saved];
-            }
-        }
-        
-        // Save all live reviews to both old table and new repository
-        $saved = 0;
-        foreach ($allReviews as $review) {
-            // Save to old table for backward compatibility
-            if ($this->saveReview($appName, $review)) {
-                $saved++;
+                // Save to new repository for enhanced functionality
+                $this->repository->addReview(
+                    $appName,
+                    $review['store_name'],
+                    $review['country_name'],
+                    $review['rating'],
+                    $review['review_content'],
+                    $review['review_date'],
+                    'live_scrape'
+                );
             }
 
-            // Save to new repository for enhanced functionality
-            $this->repository->addReview(
-                $appName,
-                $review['store_name'],
-                $review['country_name'],
-                $review['rating'],
-                $review['review_content'],
-                $review['review_date'],
-                'live_scrape'
-            );
+            // Update metadata (fetch fresh page if needed)
+            $mainUrl = "https://apps.shopify.com/{$appSlug}/reviews";
+            $mainHtml = $this->fetchPage($mainUrl);
+            if (!empty($mainHtml)) {
+                $this->updateAppMetadata($appName, $mainHtml);
+            }
+
+            echo "🎯 SCRAPING COMPLETE: $saved reviews saved for $appName\n";
+            return ['success' => true, 'message' => "Scraped $saved reviews", 'count' => $saved];
+        } else {
+            echo "❌ CRITICAL: No reviews could be scraped for $appName\n";
+            return ['success' => false, 'message' => 'No reviews scraped', 'count' => 0];
         }
-        
-        // Update metadata
-        $this->updateAppMetadata($appName, $html);
-        
-        echo "🎯 LIVE SCRAPING COMPLETE: $saved reviews saved for $appName\n";
-        return ['success' => true, 'message' => "Scraped $saved live reviews", 'count' => $saved];
     }
     
     /**
-     * Fetch page with proper headers
+     * Fetch page with proper headers and retry logic for rate limiting
      */
-    private function fetchPage($url) {
-        $ch = curl_init();
-        curl_setopt_array($ch, [
-            CURLOPT_URL => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_TIMEOUT => 30,
-            CURLOPT_USERAGENT => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            CURLOPT_HTTPHEADER => [
-                'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                'Accept-Language: en-US,en;q=0.5',
-                'Connection: keep-alive',
-                'Upgrade-Insecure-Requests: 1',
-            ],
-            CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_SSL_VERIFYHOST => false,
-        ]);
-        
-        $html = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        
-        if (curl_error($ch)) {
-            echo "❌ cURL Error: " . curl_error($ch) . "\n";
+    private function fetchPage($url, $retries = 3) {
+        for ($attempt = 1; $attempt <= $retries; $attempt++) {
+            $ch = curl_init();
+            curl_setopt_array($ch, [
+                CURLOPT_URL => $url,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_TIMEOUT => 30,
+                CURLOPT_USERAGENT => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                CURLOPT_HTTPHEADER => [
+                    'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                    'Accept-Language: en-US,en;q=0.5',
+                    'Connection: keep-alive',
+                    'Upgrade-Insecure-Requests: 1',
+                ],
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => false,
+            ]);
+
+            $html = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+            if (curl_error($ch)) {
+                echo "❌ cURL Error: " . curl_error($ch) . "\n";
+                curl_close($ch);
+                return false;
+            }
+
             curl_close($ch);
-            return false;
+
+            // Handle rate limiting (429)
+            if ($httpCode === 429) {
+                if ($attempt < $retries) {
+                    $waitTime = pow(2, $attempt) * 5; // Exponential backoff: 10s, 20s, 40s
+                    echo "⏳ Rate limited (429). Waiting {$waitTime}s before retry {$attempt}/{$retries}...\n";
+                    sleep($waitTime);
+                    continue;
+                } else {
+                    echo "❌ Rate limited after {$retries} retries. Stopping.\n";
+                    return false;
+                }
+            }
+
+            if ($httpCode !== 200) {
+                echo "❌ HTTP Error: $httpCode\n";
+                return false;
+            }
+
+            return $html;
         }
-        
-        curl_close($ch);
-        
-        if ($httpCode !== 200) {
-            echo "❌ HTTP Error: $httpCode\n";
-            return false;
-        }
-        
-        return $html;
+
+        return false;
     }
     
     /**
@@ -224,7 +246,7 @@ class UniversalLiveScraper {
             $reviewDate = '';
             if ($dateNode->length > 0) {
                 $dateText = trim($dateNode->item(0)->textContent);
-                $reviewDate = date('Y-m-d', strtotime($dateText));
+                $reviewDate = $this->parseReviewDateSafely($dateText);
             }
 
             // If no date found, try alternative selectors
@@ -233,8 +255,10 @@ class UniversalLiveScraper {
                 foreach ($allDateNodes as $dNode) {
                     $text = trim($dNode->textContent);
                     if (preg_match('/\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+\d{4}\b/', $text)) {
-                        $reviewDate = date('Y-m-d', strtotime($text));
-                        break;
+                        $reviewDate = $this->parseReviewDateSafely($text);
+                        if (!empty($reviewDate)) {
+                            break;
+                        }
                     }
                 }
             }
@@ -359,6 +383,12 @@ class UniversalLiveScraper {
      */
     private function updateAppMetadata($appName, $html) {
         try {
+            // Skip if HTML is empty
+            if (empty($html)) {
+                echo "⚠️ Skipping metadata update - empty HTML\n";
+                return;
+            }
+
             $totalReviews = 0;
             $overallRating = 0.0;
             $fiveStarTotal = 0;
@@ -786,6 +816,39 @@ class UniversalLiveScraper {
         }
 
         return 'Unknown';
+    }
+
+    /**
+     * Safely parse review date from various formats
+     * Handles cases like "Edited October 6, 2025" where strtotime() might fail
+     */
+    private function parseReviewDateSafely($dateText) {
+        $dateText = trim($dateText);
+
+        // First, try to extract the date pattern from the text
+        // This handles cases like "Edited October 6, 2025" or "October 6, 2025"
+        if (preg_match('/\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),\s+(\d{4})\b/', $dateText, $matches)) {
+            $monthName = $matches[1];
+            $day = $matches[2];
+            $year = $matches[3];
+
+            // Construct a clean date string that strtotime can reliably parse
+            $cleanDateStr = "$monthName $day, $year";
+            $timestamp = strtotime($cleanDateStr);
+
+            if ($timestamp !== false) {
+                return date('Y-m-d', $timestamp);
+            }
+        }
+
+        // Fallback: try parsing the entire text as-is
+        $timestamp = strtotime($dateText);
+        if ($timestamp !== false) {
+            return date('Y-m-d', $timestamp);
+        }
+
+        // If all parsing fails, return empty string (will be skipped)
+        return '';
     }
 }
 ?>

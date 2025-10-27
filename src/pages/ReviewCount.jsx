@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useCache } from '../context/CacheContext';
 
 const ReviewCount = () => {
+  // Use global cache from context
+  const { getCachedData, setCachedData } = useCache();
+
   // Clean up country names from database format
   const getCountryName = (countryData) => {
     // Since we now have accurate country data, handle edge cases gracefully
@@ -82,6 +86,17 @@ const ReviewCount = () => {
   };
 
   const fetchAgentStats = async (appName) => {
+    // Check global cache first
+    const cacheKey = `agent_stats_${appName}_${timeFilter}`;
+    const cachedData = getCachedData(appName, null, cacheKey);
+    if (cachedData) {
+      console.log('✅ Loading agent stats from global cache:', cacheKey);
+      setAgentStats(cachedData);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -97,6 +112,8 @@ const ReviewCount = () => {
         setError(`📊 ${data.info} You can assign reviews in the Access Review (Tabs) page.`);
       } else {
         setAgentStats(data);
+        // Cache the data globally
+        setCachedData(appName, data, null, cacheKey);
       }
     } catch (err) {
       setError('Failed to load agent statistics');
@@ -107,6 +124,17 @@ const ReviewCount = () => {
   };
 
   const fetchCountryStats = async (appName) => {
+    // Check global cache first
+    const cacheKey = `country_stats_${appName}_${timeFilter}`;
+    const cachedData = getCachedData(appName, null, cacheKey);
+    if (cachedData) {
+      console.log('✅ Loading country stats from global cache:', cacheKey);
+      setCountryStats(cachedData);
+      setCountryLoading(false);
+      setCountryError(null);
+      return;
+    }
+
     setCountryLoading(true);
     setCountryError(null);
     try {
@@ -117,6 +145,8 @@ const ReviewCount = () => {
       const data = await response.json();
       if (data.success) {
         setCountryStats(data.country_stats || []);
+        // Cache the data globally
+        setCachedData(appName, data.country_stats || [], null, cacheKey);
       } else {
         throw new Error(data.message || 'Failed to fetch country stats');
       }

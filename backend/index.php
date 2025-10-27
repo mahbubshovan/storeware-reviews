@@ -45,6 +45,10 @@ switch ($path) {
         require_once __DIR__ . '/api/apps.php';
         break;
 
+    case '/api/access-reviews-cached':
+        require_once __DIR__ . '/api/access-reviews-cached.php';
+        break;
+
     default:
         // Handle dynamic routes like /api/agent-stats/{appName}
         if (preg_match('/^\/api\/agent-stats\/(.+)$/', $path, $matches)) {

@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import './Analytics.css';
+import { useCache } from '../context/CacheContext';
 
 const Analytics = () => {
   const [selectedApp, setSelectedApp] = useState('StoreSEO'); // Default to StoreSEO
@@ -11,7 +12,11 @@ const Analytics = () => {
   const [reviewsFilter, setReviewsFilter] = useState('this_month');
   const [customDateRange, setCustomDateRange] = useState({ start: '', end: '' });
   const [showCustomDate, setShowCustomDate] = useState(false);
+  const [liveScrapingLoading, setLiveScrapingLoading] = useState(false);
+  const [liveScrapingMessage, setLiveScrapingMessage] = useState(null);
 
+  // Use global cache from context
+  const { getCachedData, setCachedData } = useCache();
 
   const handleAppChange = (app) => {
     setSelectedApp(app);
@@ -19,6 +24,17 @@ const Analytics = () => {
 
   const fetchAnalyticsData = async (appName) => {
     if (!appName) return;
+
+    // Check cache first for instant loading
+    const cachedData = getCachedData(appName);
+    if (cachedData) {
+      setAnalyticsData(cachedData);
+      setLoading(false);
+      setError(null);
+      // Still fetch reviews in background
+      await fetchFilteredReviews(appName, reviewsFilter);
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -41,6 +57,8 @@ const Analytics = () => {
 
       if (data.success) {
         setAnalyticsData(data.data);
+        // Cache the analytics data
+        setCachedData(appName, data.data);
         // Fetch filtered reviews separately
         await fetchFilteredReviews(appName, reviewsFilter);
       } else {
@@ -58,6 +76,13 @@ const Analytics = () => {
     if (!appName) return;
 
     try {
+      // Check cache first for filtered reviews
+      const cachedReviews = getCachedData(appName, filter);
+      if (cachedReviews) {
+        setLatestReviews(cachedReviews);
+        return;
+      }
+
       // Dynamic limit based on filter to show better representation
       const limit = filter === 'last_90_days' ? 30 :
                    filter === 'all' ? 50 :
@@ -76,6 +101,8 @@ const Analytics = () => {
 
       if (data.success && data.data && data.data.reviews) {
         setLatestReviews(data.data.reviews);
+        // Cache the filtered reviews
+        setCachedData(appName, data.data.reviews, filter);
       }
     } catch (err) {
       // Error handled silently
@@ -97,6 +124,67 @@ const Analytics = () => {
       }
     } catch (err) {
       console.error('Error fetching latest reviews:', err);
+    }
+  };
+
+  const performLiveScrape = async () => {
+    if (!selectedApp) return;
+
+    setLiveScrapingLoading(true);
+    setLiveScrapingMessage(null);
+    setError(null);
+
+    try {
+      console.log(`🌐 Starting live scrape for ${selectedApp}...`);
+      setLiveScrapingMessage('🔄 Scraping live data from Shopify app store...');
+
+      const response = await fetch(`/backend/api/live-scrape.php?app=${encodeURIComponent(selectedApp)}`);
+      const data = await response.json();
+
+      if (data.success && data.data) {
+        console.log('✅ Live scrape successful:', data.data);
+
+        // Update analytics data with live scraped data
+        setAnalyticsData({
+          app_name: data.data.app_name,
+          total_reviews: data.data.total_reviews,
+          average_rating: data.data.average_rating,
+          rating_distribution: data.data.rating_distribution,
+          latest_reviews: data.data.latest_reviews,
+          this_month_count: analyticsData?.this_month_count || 0,
+          last_30_days_count: analyticsData?.last_30_days_count || 0,
+          data_source: 'live_scrape',
+          scraped_at: data.data.scraped_at
+        });
+
+        // Update latest reviews
+        if (data.data.latest_reviews && data.data.latest_reviews.length > 0) {
+          setLatestReviews(data.data.latest_reviews);
+        }
+
+        // Clear cache for this app to force fresh data on next load
+        // (Don't cache live scrape results to ensure freshness)
+
+        setLiveScrapingMessage(`✅ Live scrape completed! Found ${data.data.total_reviews} total reviews with ${data.data.average_rating} average rating.`);
+
+        // Auto-clear message after 5 seconds
+        setTimeout(() => {
+          setLiveScrapingMessage(null);
+        }, 5000);
+
+      } else {
+        const errorMsg = data.error || 'Failed to scrape live data';
+        console.error('❌ Live scrape failed:', errorMsg);
+        setLiveScrapingMessage(`❌ Error: ${errorMsg}`);
+        setError(errorMsg);
+      }
+    } catch (err) {
+      console.error('❌ Live scrape error:', err);
+      const errorMsg = `Network error: ${err.message}`;
+      setLiveScrapingMessage(`❌ ${errorMsg}`);
+      setError(errorMsg);
+    } finally {
+      setLiveScrapingLoading(false);
     }
   };
 
@@ -198,6 +286,22 @@ const Analytics = () => {
             <option value="Vidify">Vidify</option>
             <option value="TrustSync">TrustSync</option>
           </select>
+          <button
+            onClick={performLiveScrape}
+            disabled={!selectedApp || liveScrapingLoading}
+            className="live-scrape-button"
+            title="Fetch real-time data directly from Shopify app store"
+          >
+            {liveScrapingLoading ? (
+              <>
+                <span className="spinner">⟳</span> Scraping...
+              </>
+            ) : (
+              <>
+                🌐 Live Scrape
+              </>
+            )}
+          </button>
         </div>
       </div>
 
@@ -254,7 +358,19 @@ const Analytics = () => {
                 🔄 Retry
               </button>
             </div>
-          ) : analyticsData ? (
+          ) : (
+            <>
+              {/* Live Scraping Message */}
+              {liveScrapingMessage && (
+                <div className={`live-scraping-message ${liveScrapingMessage.includes('✅') ? 'success' : 'error'}`}>
+                  <div className="message-content">
+                    {liveScrapingMessage}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+          {analyticsData ? (
             <>
               {/* Statistics Cards */}
               <div className="stats-grid">

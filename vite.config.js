@@ -5,10 +5,12 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
     plugins: [react()],
     build: {
-        outDir: '',
+        outDir: 'dist',
         assetsDir: 'assets',
+        emptyOutDir: true,
         // Ensure relative paths in production
         base: './',
+        minify: false,
         rollupOptions: {
             output: {
                 entryFileNames: 'assets/index.js',

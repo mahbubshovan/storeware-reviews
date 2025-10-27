@@ -11,6 +11,7 @@ ini_set('memory_limit', '512M'); // Increase memory limit
 require_once __DIR__ . '/../config/cors.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../scraper/ImprovedShopifyReviewScraper.php';
+require_once __DIR__ . '/../scraper/IncrementalShopifyReviewScraper.php';
 
 header('Content-Type: application/json');
 
@@ -97,48 +98,8 @@ function handleGetCachedReviews($conn) {
         return;
     }
 
-    // Initialize scraper with caching
-    $scraper = new ImprovedShopifyReviewScraper();
-
-    // Get client IP for IP-based caching
-    $clientIP = getClientIP();
-
-    // IP-based 12-hour caching for fast tab switching
-    // Once an IP scrapes an app, all subsequent tab switches load from cache for 12 hours
-    $forceFresh = false;
-
-    // Check if this IP has scraped this app within the last 12 hours
-    $ipCacheStmt = $conn->prepare("
-        SELECT scraped_at FROM review_cache
-        WHERE app_name = ? AND client_ip = ? AND scraped_at > DATE_SUB(NOW(), INTERVAL 12 HOUR)
-        ORDER BY scraped_at DESC LIMIT 1
-    ");
-    $ipCacheStmt->execute([$appName, $clientIP]);
-    $lastIPScrape = $ipCacheStmt->fetchColumn();
-
-    if (!$lastIPScrape) {
-        // First time this IP is accessing this app, or cache expired - do a fresh scrape
-        $forceFresh = true;
-        error_log("🔄 Fresh scrape for $appName from IP $clientIP - cache expired or first access");
-    } else {
-        // Cache is still valid for this IP - use cached data for instant tab switching
-        error_log("⚡ Using cached data for $appName from IP $clientIP - instant tab switch");
-    }
-
-    // Get reviews with smart caching (12-hour IP-based cache)
-    $scrapedResult = $scraper->getReviewsWithCaching($appName, $forceFresh, $clientIP);
-    
-    if (!$scrapedResult['success']) {
-        echo json_encode([
-            'success' => false,
-            'error' => $scrapedResult['error'] ?? 'Failed to fetch reviews'
-        ]);
-        return;
-    }
-
-    // Store/update reviews in database for assignment functionality
-    $reviews = $scrapedResult['data'];
-    updateReviewsInDatabase($conn, $reviews, $appName);
+    // Get reviews directly from database (no scraping needed - data is already there)
+    // The database is populated by the UniversalLiveScraper which scrapes live Shopify pages
 
     // Get paginated reviews from database (for assignment functionality)
     $offset = ($page - 1) * $limit;
@@ -161,6 +122,7 @@ function handleGetCachedReviews($conn) {
         $dateParams = [$startDate, $endDate];
     }
 
+    // Query from reviews table (all reviews - complete historical record)
     $query = "
         SELECT
             id,
@@ -174,8 +136,7 @@ function handleGetCachedReviews($conn) {
             created_at,
             updated_at
         FROM reviews
-        WHERE app_name = ?
-        AND is_active = TRUE
+        WHERE app_name = ? AND is_active = TRUE
         $dateCondition
         ORDER BY
             review_date DESC,
@@ -188,7 +149,7 @@ function handleGetCachedReviews($conn) {
     $stmt->execute($params);
     $paginatedReviews = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Get total count from database with same date filter
+    // Get total count from reviews table with same date filter
     $countQuery = "SELECT COUNT(*) as total FROM reviews WHERE app_name = ? AND is_active = TRUE $dateCondition";
     $countParams = array_merge([$appName], $dateParams);
     $countStmt = $conn->prepare($countQuery);
@@ -208,7 +169,7 @@ function handleGetCachedReviews($conn) {
         $pageNumbers[] = $i;
     }
 
-    // Get assignment statistics
+    // Get assignment statistics from reviews table (all reviews)
     $assignmentQuery = "
         SELECT
             COUNT(*) as db_total_reviews,
@@ -233,30 +194,21 @@ function handleGetCachedReviews($conn) {
     ];
     $avgRating = $avgRatings[$appName] ?? 4.8;
 
-    // Use correct totals that match live Shopify pages
-    // Updated: 2025-10-24 - All counts verified from live Shopify app store pages
-    $correctTotals = [
-        'StoreSEO' => 526,
-        'StoreFAQ' => 106,
-        'EasyFlow' => 318,
-        'TrustSync' => 41,
-        'BetterDocs FAQ Knowledge Base' => 35,
-        'Vidify' => 8
-    ];
+    // Get actual total count from database (all reviews, not filtered by date)
+    $totalCountQuery = "SELECT COUNT(*) as total FROM reviews WHERE app_name = ? AND is_active = TRUE";
+    $totalCountStmt = $conn->prepare($totalCountQuery);
+    $totalCountStmt->execute([$appName]);
+    $actualTotal = $totalCountStmt->fetch(PDO::FETCH_ASSOC)['total'];
 
-    $correctTotal = $correctTotals[$appName] ?? $scrapedResult['total_reviews'];
+    $correctTotal = $actualTotal;
 
     // Combine live stats with assignment stats
     $statistics = [
-        'total_reviews' => (int)$assignmentStats['db_total_reviews'], // Use database count for assignments
+        'total_reviews' => (int)$assignmentStats['db_total_reviews'], // Use database count
         'assigned_reviews' => (int)$assignmentStats['assigned_reviews'],
         'unassigned_reviews' => (int)$assignmentStats['unassigned_reviews'],
-        'avg_rating' => $avgRating, // Use correct rating from Shopify
-        'shopify_total_reviews' => $correctTotal, // Use correct Shopify total
-        'scraped_total_reviews' => $scrapedResult['total_reviews'], // Keep scraped total for debugging
-        'cache_status' => $scrapedResult['cache_status'],
-        'scraped_at' => $scrapedResult['scraped_at'],
-        'expires_at' => $scrapedResult['expires_at']
+        'avg_rating' => $avgRating, // Use correct rating from database
+        'data_source' => 'database'
     ];
 
     $executionTime = round((microtime(true) - $startTime) * 1000, 2);
@@ -276,38 +228,65 @@ function handleGetCachedReviews($conn) {
             ],
             'statistics' => $statistics,
             'app_name' => $appName,
-            'data_source' => 'cached_scraping'
+            'data_source' => 'database'
         ],
         'execution_time_ms' => $executionTime
     ]);
 }
 
 function updateReviewsInDatabase($conn, $reviews, $appName) {
-    // First, mark all existing reviews for this app as inactive
-    $deactivateStmt = $conn->prepare("UPDATE reviews SET is_active = FALSE WHERE app_name = ?");
-    $deactivateStmt->execute([$appName]);
+    // Use incremental scraper to only add new reviews
+    // This preserves existing assignments and data
+    $incrementalScraper = new IncrementalShopifyReviewScraper();
 
-    // Insert or update reviews
-    $insertStmt = $conn->prepare("
-        INSERT INTO reviews (
-            app_name, store_name, country_name, rating, review_content, 
-            review_date, earned_by, is_active, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, TRUE, NOW(), NOW())
-        ON DUPLICATE KEY UPDATE
-            is_active = TRUE,
-            updated_at = NOW()
-    ");
-
+    // Find new reviews that don't exist in database
+    $newReviews = [];
     foreach ($reviews as $review) {
-        $insertStmt->execute([
+        $stmt = $conn->prepare("
+            SELECT id FROM reviews
+            WHERE app_name = ?
+            AND store_name = ?
+            AND review_date = ?
+            AND review_content = ?
+            LIMIT 1
+        ");
+
+        $stmt->execute([
             $review['app_name'],
             $review['store_name'],
-            $review['country_name'],
-            $review['rating'],
-            $review['review_content'],
             $review['review_date'],
-            $review['earned_by']
+            $review['review_content']
         ]);
+
+        // If review doesn't exist, add it to new reviews list
+        if ($stmt->rowCount() === 0) {
+            $newReviews[] = $review;
+        }
+    }
+
+    // Only insert new reviews, don't deactivate existing ones
+    if (!empty($newReviews)) {
+        $insertStmt = $conn->prepare("
+            INSERT INTO reviews (
+                app_name, store_name, country_name, rating, review_content,
+                review_date, earned_by, is_active, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, TRUE, NOW(), NOW())
+            ON DUPLICATE KEY UPDATE
+                is_active = TRUE,
+                updated_at = NOW()
+        ");
+
+        foreach ($newReviews as $review) {
+            $insertStmt->execute([
+                $review['app_name'],
+                $review['store_name'],
+                $review['country_name'],
+                $review['rating'],
+                $review['review_content'],
+                $review['review_date'],
+                $review['earned_by'] ?? null
+            ]);
+        }
     }
 }
 
