@@ -27,7 +27,7 @@ function App() {
     <CacheProvider>
       <div className="app">
         <header className="app-header">
-          <h1>Shopify App Review Analytics</h1>
+          <h1>Shopify App Review Analytics testing</h1>
           <p>Comprehensive analytics dashboard for tracking and analyzing Shopify app reviews</p>
 
           {/* Navigation Tabs */}
