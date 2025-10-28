@@ -13,7 +13,9 @@ export default defineConfig({
         base: './',
         minify: false,
         rollupOptions: {
-            input: 'dashboard.html',
+            input: {
+                main: 'dashboard.html'
+            },
             output: {
                 entryFileNames: 'assets/index.js',
                 assetFileNames: 'assets/index.css',
