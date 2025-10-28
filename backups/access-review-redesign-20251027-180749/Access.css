@@ -13,6 +13,7 @@
   padding: var(--space-4);
   min-height: 100vh;
   background: linear-gradient(135deg, var(--primary-600) 0%, var(--secondary-600) 100%);
+  width: 100%;
 }
 
 .access-content {

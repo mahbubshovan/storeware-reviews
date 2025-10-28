@@ -102,7 +102,15 @@ const AccessTabbed = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
+      // Get response text first to debug
+      const responseText = await response.text();
+      console.log('Response text:', responseText.substring(0, 200));
+
+      if (!responseText) {
+        throw new Error('Empty response from server');
+      }
+
+      const data = JSON.parse(responseText);
 
       if (data.success) {
         setReviews(data.data.reviews || []);
@@ -138,12 +146,23 @@ const AccessTabbed = () => {
   };
 
   const handlePageChange = (newPage) => {
+    // Add fade-out effect
+    const reviewsList = document.querySelector('.reviews-list');
+    if (reviewsList) {
+      reviewsList.style.opacity = '0';
+      reviewsList.style.transform = 'translateY(10px)';
+    }
+
     // Update the page for current tab
     setTabPages(prev => ({
       ...prev,
       [activeTab]: newPage
     }));
-    fetchTabReviews(activeTab, newPage);
+
+    // Fetch new data with slight delay for smooth transition
+    setTimeout(() => {
+      fetchTabReviews(activeTab, newPage);
+    }, 150);
   };
 
   const handleEditClick = (review) => {
@@ -345,24 +364,24 @@ const AccessTabbed = () => {
         {statistics && (
           <div className="tab-statistics">
             <div className="stat-item">
-              <span className="stat-label">Total Reviews:</span>
+              <span className="stat-label">Total Reviews</span>
               <span className="stat-value">{statistics.total_reviews}</span>
             </div>
             <div className="stat-item">
-              <span className="stat-label">Assigned:</span>
+              <span className="stat-label">Assigned</span>
               <span className="stat-value">{statistics.assigned_reviews}</span>
             </div>
             <div className="stat-item">
-              <span className="stat-label">Unassigned:</span>
+              <span className="stat-label">Unassigned</span>
               <span className="stat-value">{statistics.unassigned_reviews}</span>
             </div>
             <div className="stat-item">
-              <span className="stat-label">Avg Rating:</span>
+              <span className="stat-label">Avg Rating</span>
               <span className="stat-value">{statistics.avg_rating}★</span>
             </div>
             {statistics.cache_status && (
               <div className="stat-item">
-                <span className="stat-label">Data:</span>
+                <span className="stat-label">Data</span>
                 <span className={`stat-value cache-${statistics.cache_status}`}>
                   {statistics.cache_status === 'hit' ? '⚡ Cached' : '🔄 Fresh'}
                 </span>
@@ -438,26 +457,70 @@ const AccessTabbed = () => {
                             onChange={(e) => setEditValue(e.target.value)}
                             placeholder="Enter name"
                             className="assignment-input"
+                            style={{
+                              padding: '8px 14px',
+                              border: '1px solid #D1D5DB',
+                              borderRadius: '20px',
+                              fontSize: '14px',
+                              background: '#F9FAFB',
+                              color: '#1F2937',
+                              minWidth: '140px',
+                              fontWeight: '500',
+                              transition: 'all 0.2s ease'
+                            }}
                             autoFocus
                           />
-                          <button 
+                          <button
                             onClick={() => handleEditSave(review.id)}
                             className="save-btn"
+                            style={{
+                              background: '#10B981',
+                              color: 'white',
+                              border: 'none',
+                              padding: '8px 18px',
+                              borderRadius: '20px',
+                              fontSize: '13px',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease'
+                            }}
                           >
                             Save
                           </button>
-                          <button 
+                          <button
                             onClick={handleEditCancel}
                             className="cancel-btn"
+                            style={{
+                              background: '#F3F4F6',
+                              color: '#6B7280',
+                              border: '1px solid #D1D5DB',
+                              padding: '8px 18px',
+                              borderRadius: '20px',
+                              fontSize: '13px',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease'
+                            }}
                           >
                             Cancel
                           </button>
                         </div>
                       ) : (
-                        <span 
+                        <span
                           className="assignment-value clickable"
                           onClick={() => handleEditClick(review)}
                           title="Click to edit"
+                          style={{
+                            background: '#F0FDF4',
+                            color: '#15803D',
+                            padding: '6px 16px',
+                            borderRadius: '20px',
+                            fontSize: '14px',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            border: '1px solid #DCFCE7',
+                            display: 'inline-block'
+                          }}
                         >
                           {review.earned_by || 'Unassigned'}
                         </span>

@@ -70,7 +70,7 @@ function App() {
                 marginRight: '10px',
                 border: 'none',
                 borderRadius: '5px',
-                backgroundColor: currentView === 'appwise-reviews' ? '#28a745' : '#f8f9fa',
+                backgroundColor: currentView === 'appwise-reviews' ? '#007bff' : '#f8f9fa',
                 color: currentView === 'appwise-reviews' ? 'white' : '#333',
                 cursor: 'pointer'
               }}
@@ -84,7 +84,7 @@ function App() {
                 padding: '10px 20px',
                 border: 'none',
                 borderRadius: '5px',
-                backgroundColor: currentView === 'agent-reviews' ? '#17a2b8' : '#f8f9fa',
+                backgroundColor: currentView === 'agent-reviews' ? '#007bff' : '#f8f9fa',
                 color: currentView === 'agent-reviews' ? 'white' : '#333',
                 cursor: 'pointer'
               }}

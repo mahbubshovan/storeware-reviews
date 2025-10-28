@@ -69,7 +69,7 @@ const ReviewCredit = () => {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      background: 'linear-gradient(135deg, #10B981 0%, #0d9488 100%)',
       padding: '20px'
     }}>
       <div style={{ textAlign: 'center', color: 'white', padding: '20px' }}>
@@ -78,7 +78,8 @@ const ReviewCredit = () => {
 
         {/* Time Filter Tabs */}
         {/* App Selector */}
-        <div style={{ margin: '20px 0' }}>
+        {/* <div style={{ margin: '20px 0' }}> */}
+        <div style={{  }}>
           <div style={{
             background: 'rgba(255,255,255,0.1)',
             borderRadius: '10px',
@@ -126,7 +127,7 @@ const ReviewCredit = () => {
                 style={{
                   padding: '12px 24px',
                   background: timeFilter === 'last_30_days' ? 'white' : 'transparent',
-                  color: timeFilter === 'last_30_days' ? '#667eea' : 'white',
+                  color: timeFilter === 'last_30_days' ? '#10B981' : 'white',
                   border: 'none',
                   borderRadius: '8px',
                   cursor: 'pointer',
@@ -140,7 +141,7 @@ const ReviewCredit = () => {
                 style={{
                   padding: '12px 24px',
                   background: timeFilter === 'all_time' ? 'white' : 'transparent',
-                  color: timeFilter === 'all_time' ? '#667eea' : 'white',
+                  color: timeFilter === 'all_time' ? '#10B981' : 'white',
                   border: 'none',
                   borderRadius: '8px',
                   cursor: 'pointer',
@@ -219,7 +220,7 @@ const ReviewCredit = () => {
                           padding: '25px',
                           color: '#333',
                           boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                          border: index === 0 && agent.review_count > 0 ? '3px solid #667eea' : 'none',
+                          border: index === 0 && agent.review_count > 0 ? '3px solid #10B981' : 'none',
                           position: 'relative'
                         }}
                       >
@@ -228,7 +229,7 @@ const ReviewCredit = () => {
                             position: 'absolute',
                             top: '-10px',
                             right: '15px',
-                            background: '#667eea',
+                            background: '#10B981',
                             color: 'white',
                             padding: '5px 12px',
                             borderRadius: '15px',
@@ -243,7 +244,7 @@ const ReviewCredit = () => {
                           <div style={{
                             fontSize: '2.5rem',
                             fontWeight: 'bold',
-                            color: '#667eea',
+                            color: '#10B981',
                             marginBottom: '10px'
                           }}>
                             {agent.review_count}

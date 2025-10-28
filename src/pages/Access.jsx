@@ -361,6 +361,17 @@ const Access = () => {
                                 onChange={(e) => setEditValue(e.target.value)}
                                 placeholder="Enter name..."
                                 className="earned-by-input"
+                                style={{
+                                  padding: '8px 14px',
+                                  border: '1px solid #D1D5DB',
+                                  borderRadius: '20px',
+                                  fontSize: '14px',
+                                  background: '#F9FAFB',
+                                  color: '#1F2937',
+                                  minWidth: '140px',
+                                  fontWeight: '500',
+                                  transition: 'all 0.2s ease'
+                                }}
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter') {
                                     handleEditSave(review.id);
@@ -373,12 +384,34 @@ const Access = () => {
                               <button
                                 onClick={() => handleEditSave(review.id)}
                                 className="btn-save"
+                                style={{
+                                  background: '#10B981',
+                                  color: 'white',
+                                  border: 'none',
+                                  padding: '8px 18px',
+                                  borderRadius: '20px',
+                                  fontSize: '13px',
+                                  fontWeight: '600',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s ease'
+                                }}
                               >
                                 Save
                               </button>
                               <button
                                 onClick={handleEditCancel}
                                 className="btn-cancel"
+                                style={{
+                                  background: '#F3F4F6',
+                                  color: '#6B7280',
+                                  border: '1px solid #D1D5DB',
+                                  padding: '8px 18px',
+                                  borderRadius: '20px',
+                                  fontSize: '13px',
+                                  fontWeight: '600',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s ease'
+                                }}
                               >
                                 Cancel
                               </button>
@@ -388,9 +421,38 @@ const Access = () => {
                               onClick={() => handleEditStart(review.id, review.earned_by)}
                             >
                               {review.earned_by ? (
-                                <span className="earned-by-display">{review.earned_by}</span>
+                                <span
+                                  className="earned-by-display"
+                                  style={{
+                                    background: '#F0FDF4',
+                                    color: '#15803D',
+                                    padding: '6px 16px',
+                                    borderRadius: '20px',
+                                    fontSize: '14px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    border: '1px solid #DCFCE7',
+                                    display: 'inline-block'
+                                  }}
+                                >
+                                  {review.earned_by}
+                                </span>
                               ) : (
-                                <span className="earned-by-empty">Click to assign</span>
+                                <span
+                                  className="earned-by-empty"
+                                  style={{
+                                    color: '#9CA3AF',
+                                    cursor: 'pointer',
+                                    padding: '6px 16px',
+                                    border: '1px dashed #D1D5DB',
+                                    borderRadius: '20px',
+                                    fontSize: '14px',
+                                    background: 'transparent',
+                                    display: 'inline-block'
+                                  }}
+                                >
+                                  Click to assign
+                                </span>
                               )}
                             </div>
                           )}

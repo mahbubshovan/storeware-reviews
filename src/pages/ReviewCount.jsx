@@ -41,7 +41,42 @@ const ReviewCount = () => {
       'Belgium': '🇧🇪 Belgium',
       'Switzerland': '🇨🇭 Switzerland',
       'Austria': '🇦🇹 Austria',
-      'Ireland': '🇮🇪 Ireland'
+      'Ireland': '🇮🇪 Ireland',
+      'New Zealand': '🇳🇿 New Zealand',
+      'Portugal': '🇵🇹 Portugal',
+      'Spain': '🇪🇸 Spain',
+      'China': '🇨🇳 China',
+      'Malaysia': '🇲🇾 Malaysia',
+      'Mexico': '🇲🇽 Mexico',
+      'Ukraine': '🇺🇦 Ukraine',
+      'Vietnam': '🇻🇳 Vietnam',
+      'Poland': '🇵🇱 Poland',
+      'Hungary': '🇭🇺 Hungary',
+      'Czech Republic': '🇨🇿 Czech Republic',
+      'Romania': '🇷🇴 Romania',
+      'Greece': '🇬🇷 Greece',
+      'Italy': '🇮🇹 Italy',
+      'Brazil': '🇧🇷 Brazil',
+      'Argentina': '🇦🇷 Argentina',
+      'Chile': '🇨🇱 Chile',
+      'Colombia': '🇨🇴 Colombia',
+      'Thailand': '🇹🇭 Thailand',
+      'Indonesia': '🇮🇩 Indonesia',
+      'Philippines': '🇵🇭 Philippines',
+      'South Korea': '🇰🇷 South Korea',
+      'Taiwan': '🇹🇼 Taiwan',
+      'Hong Kong': '🇭🇰 Hong Kong',
+      'Pakistan': '🇵🇰 Pakistan',
+      'Bangladesh': '🇧🇩 Bangladesh',
+      'Turkey': '🇹🇷 Turkey',
+      'Saudi Arabia': '🇸🇦 Saudi Arabia',
+      'United Arab Emirates': '🇦🇪 United Arab Emirates',
+      'Israel': '🇮🇱 Israel',
+      'Egypt': '🇪🇬 Egypt',
+      'Nigeria': '🇳🇬 Nigeria',
+      'Kenya': '🇰🇪 Kenya',
+      'Peru': '🇵🇪 Peru',
+      'Bulgaria': '🇧🇬 Bulgaria'
     };
 
     return countryMap[cleanCountry] || `🌍 ${cleanCountry}`;
@@ -75,10 +110,7 @@ const ReviewCount = () => {
       if (!response.ok) throw new Error('Failed to fetch apps');
       const data = await response.json();
       setApps(data);
-      // Set first app as default selection
-      if (data.length > 0) {
-        setSelectedApp(data[0]);
-      }
+      // Don't set a default app - let user choose
     } catch (err) {
       setError('Failed to load apps');
       console.error('Error fetching apps:', err);
@@ -159,6 +191,16 @@ const ReviewCount = () => {
     }
   };
 
+  // Handle app selection and clear old data
+  const handleAppSelect = (app) => {
+    setSelectedApp(app);
+    // Clear old data immediately when app changes
+    setAgentStats([]);
+    setCountryStats([]);
+    setError(null);
+    setCountryError(null);
+  };
+
   // Helper function to format app names consistently
   const formatAppName = (appName) => {
     if (!appName) return '';
@@ -185,9 +227,13 @@ const ReviewCount = () => {
 
   return (
     <div className="review-count-page" style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      padding: '20px 0'
+      // minHeight: '100vh',
+      background: 'white',
+      maxWidth: '1400px',
+      width: '100%',
+      margin: '0 auto',
+      padding: '20px',
+      borderRadius: '16px'
     }}>
       <style>
         {`
@@ -197,12 +243,12 @@ const ReviewCount = () => {
             border-radius: 12px;
             padding: 4px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
+            // margin-bottom: 20px;
           }
 
           .time-filter-tab {
             flex: 1;
-            padding: 12px 16px;
+            padding: 12px 0;
             border: none;
             border-radius: 8px;
             background: transparent;
@@ -215,14 +261,14 @@ const ReviewCount = () => {
           }
 
           .time-filter-tab.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #10B981 0%, #0d9488 100%);
             color: white;
-            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
           }
 
           .time-filter-tab:hover:not(.active) {
-            background: rgba(102, 126, 234, 0.1);
-            color: #667eea;
+            background: rgba(16, 185, 129, 0.1);
+            color: #10B981;
           }
         `}
       </style>
@@ -256,76 +302,61 @@ const ReviewCount = () => {
           .stats-grid > div:nth-child(6) { animation-delay: 0.6s; }
         `}
       </style>
-      <div className="container" style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto' }}>
-        <div className="page-header" style={{
-          marginBottom: '40px',
-          textAlign: 'center',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          padding: '40px 20px',
-          borderRadius: '20px',
-          color: 'white',
-          position: 'relative',
-          overflow: 'hidden'
-        }}>
-          {/* Background decoration */}
-          <div style={{
-            position: 'absolute',
-            top: '-50%',
-            left: '-50%',
-            width: '200%',
-            height: '200%',
-            background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)',
-            pointerEvents: 'none'
-          }} />
-
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{
-              fontSize: '3rem',
-              marginBottom: '10px'
-            }}>
-              📊
-            </div>
-            <h1 style={{
-              fontSize: '3rem',
-              fontWeight: 'bold',
-              color: 'white',
-              marginBottom: '15px',
-              textShadow: '0 4px 8px rgba(0,0,0,0.3)'
-            }}>
-              Appwise Reviews Dashboard
-            </h1>
-            <p style={{
-              fontSize: '1.2rem',
-              color: 'rgba(255,255,255,0.9)',
-              marginBottom: '0',
-              maxWidth: '600px',
-              margin: '0 auto'
-            }}>
-              Track and analyze support agent performance with comprehensive review statistics
-            </p>
-          </div>
+      {/* <div className="page-header" style={{
+        marginBottom: '0',
+        textAlign: 'center',
+        background: 'linear-gradient(135deg, #10B981 0%, #0d9488 100%)',
+        padding: '30px 20px',
+        borderRadius: '0',
+        color: 'white',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <h1 style={{
+            fontSize: '2rem',
+            fontWeight: 'bold',
+            color: 'white',
+            marginBottom: '8px',
+            margin: '0'
+          }}>
+            📊 Appwise Reviews Dashboard
+          </h1>
+          <p style={{
+            fontSize: '0.95rem',
+            color: 'rgba(255,255,255,0.9)',
+            marginBottom: '0',
+            maxWidth: '600px',
+            margin: '0 auto'
+          }}>
+            Track and analyze support agent performance
+          </p>
         </div>
+      </div> */}
 
+      {/* <div className="container" style={{ padding: '30px 20px', maxWidth: '1400px', margin: '0 auto', background: 'white' }}> */}
+      <div className="container">
         <div className="two-section-layout" style={{
           display: 'grid',
           gridTemplateColumns: '300px 1fr',
           gap: '30px',
-          height: 'calc(100vh - 200px)'
+          // height: 'calc(100vh - 200px)'
         }}>
           {/* Left Section - App Selection */}
           <div className="app-selection-section" style={{
-            background: 'rgba(255, 255, 255, 0.95)',
-            backdropFilter: 'blur(10px)',
-            borderRadius: '20px',
-            padding: '30px',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+            background: 'white',
+            borderRadius: '8px',
+            padding: '20px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
             height: 'fit-content',
-            border: '1px solid rgba(255,255,255,0.2)'
+            border: '1px solid #e5e7eb'
           }}>
             {/* Header */}
             <div style={{
-              textAlign: 'center',
-              marginBottom: '30px'
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: '10px'
             }}>
               <div style={{
                 fontSize: '2.5rem',
@@ -333,13 +364,14 @@ const ReviewCount = () => {
               }}>
                 🎯
               </div>
+              <div>
               <h3 style={{
                 fontSize: '1.5rem',
                 fontWeight: 'bold',
                 color: '#333',
                 marginBottom: '8px'
               }}>
-                Select Application
+                Appwise Reviews
               </h3>
               <p style={{
                 fontSize: '0.9rem',
@@ -348,12 +380,13 @@ const ReviewCount = () => {
               }}>
                 Choose an app to view agent statistics
               </p>
+              </div>
             </div>
 
             {/* Currently Selected App Display */}
-            {selectedApp && (
+            {/* {selectedApp && (
               <div style={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                background: 'linear-gradient(135deg, #10B981 0%, #0d9488 100%)',
                 padding: '20px',
                 borderRadius: '16px',
                 marginBottom: '25px',
@@ -361,9 +394,9 @@ const ReviewCount = () => {
                 textAlign: 'center',
                 position: 'relative',
                 overflow: 'hidden'
-              }}>
+              }}> */}
                 {/* Background decoration */}
-                <div style={{
+                {/* <div style={{
                   position: 'absolute',
                   top: '-50%',
                   right: '-50%',
@@ -400,13 +433,14 @@ const ReviewCount = () => {
                   }} />
                 </div>
               </div>
-            )}
+            )} */}
 
             {/* Time Filter Options */}
             <div style={{
-              marginBottom: '25px'
+              marginBottom: '25px',
+              marginTop: '25px'
             }}>
-              <div style={{
+              {/* <div style={{
                 textAlign: 'center',
                 marginBottom: '15px'
               }}>
@@ -425,7 +459,7 @@ const ReviewCount = () => {
                 }}>
                   Select data range
                 </p>
-              </div>
+              </div> */}
 
               {/* Time Filter Tabs */}
               <div className="time-filter-tabs">
@@ -450,7 +484,7 @@ const ReviewCount = () => {
               {apps.map((app, index) => {
                 const isSelected = selectedApp === app;
                 const gradients = [
-                  'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  'linear-gradient(135deg, #10B981 0%, #0d9488 100%)',
                   'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
                   'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
                   'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
@@ -462,10 +496,10 @@ const ReviewCount = () => {
                   <button
                     key={app}
                     className="custom-selection-button"
-                    onClick={() => setSelectedApp(app)}
+                    onClick={() => handleAppSelect(app)}
                     style={{
                       width: '100%',
-                      padding: '16px 20px',
+                      padding: '10px 20px',
                       border: 'none',
                       borderRadius: '12px',
                       background: isSelected
@@ -542,7 +576,8 @@ const ReviewCount = () => {
             backgroundColor: 'white',
             borderRadius: '8px',
             padding: '20px',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            border: '1px solid #e5e7eb'
           }}>
             <h3 style={{
               fontSize: '1.3rem',
@@ -559,6 +594,29 @@ const ReviewCount = () => {
                 </span>
               )}
             </h3>
+
+            {!selectedApp && !loading && !error && (
+              <div style={{
+                textAlign: 'center',
+                padding: '60px 40px',
+                background: 'linear-gradient(135deg, #10B981 0%, #0d9488 100%)',
+                borderRadius: '16px',
+                color: 'white'
+              }}>
+                <div style={{ fontSize: '4rem', marginBottom: '20px' }}>🎯</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: '600', marginBottom: '10px' }}>
+                  Choose an app to analyze
+                </div>
+                <div style={{
+                  fontSize: '1.1rem',
+                  color: 'rgba(255,255,255,0.9)',
+                  maxWidth: '400px',
+                  margin: '0 auto'
+                }}>
+                  Select an application from the left panel to view support agent statistics and performance metrics.
+                </div>
+              </div>
+            )}
 
             {loading && (
               <div style={{
@@ -641,7 +699,7 @@ const ReviewCount = () => {
                   marginBottom: '30px'
                 }}>
                   <div style={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    background: 'linear-gradient(135deg, #10B981 0%, #0d9488 100%)',
                     padding: '20px',
                     borderRadius: '12px',
                     color: 'white',
@@ -706,7 +764,7 @@ const ReviewCount = () => {
                           borderRadius: '8px',
                           padding: '16px',
                           color: '#333',
-                          border: isTopPerformer ? '2px solid #667eea' : '1px solid #e0e0e0',
+                          border: isTopPerformer ? '2px solid #10B981' : '1px solid #e0e0e0',
                           boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                           transition: 'all 0.2s ease',
                           position: 'relative'
@@ -717,13 +775,14 @@ const ReviewCount = () => {
                         {isTopPerformer && (
                           <div style={{
                             position: 'absolute',
-                            top: '8px',
+                            top: '-18px',
                             right: '8px',
-                            background: '#667eea',
+                            background: 'white',
+                            border: '2px solid #10B981',
                             color: 'white',
                             padding: '2px 6px',
                             borderRadius: '4px',
-                            fontSize: '0.7rem',
+                            fontSize: '1.2rem',
                             fontWeight: 'bold'
                           }}>
                             👑
@@ -744,7 +803,7 @@ const ReviewCount = () => {
                           {timeFilter === 'all_time' && (
                             <span style={{
                               fontSize: '0.7rem',
-                              background: '#667eea',
+                              background: '#10B981',
                               color: 'white',
                               padding: '2px 6px',
                               borderRadius: '10px',
@@ -787,7 +846,7 @@ const ReviewCount = () => {
                         }}>
                           <div style={{
                             height: '100%',
-                            background: isTopPerformer ? '#667eea' : '#4facfe',
+                            background: isTopPerformer ? '#10B981' : '#14b8a6',
                             borderRadius: '2px',
                             width: `${Math.min((stat.review_count / Math.max(...agentStats.map(s => s.review_count))) * 100, 100)}%`,
                             transition: 'width 0.3s ease'
@@ -813,30 +872,36 @@ const ReviewCount = () => {
               }}>
                 {/* Header */}
                 <div style={{
-                  textAlign: 'center',
-                  marginBottom: '30px'
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  marginBottom: '30px',
+                  marginTop: '0'
                 }}>
                   <div style={{
                     fontSize: '2.5rem',
-                    marginBottom: '10px'
+                    // marginBottom: '10px'
                   }}>
                     🌍
                   </div>
-                  <h3 style={{
-                    fontSize: '1.8rem',
-                    fontWeight: 'bold',
-                    color: '#333',
-                    marginBottom: '8px'
-                  }}>
-                    Country-wise Review Count
-                  </h3>
-                  <p style={{
-                    fontSize: '1rem',
-                    color: '#666',
-                    margin: '0'
-                  }}>
-                    Review distribution by country for {formatAppName(selectedApp)} ({timeFilter === 'last_30_days' ? 'Last 30 Days' : 'All Time'})
-                  </p>
+                  <div>
+                    <h3 style={{
+                      fontSize: '1.8rem',
+                      fontWeight: 'bold',
+                      color: '#333',
+                      marginBottom: '8px',
+                      marginTop: '0'
+                    }}>
+                      Country-wise Review Count
+                    </h3>
+                    <p style={{
+                      fontSize: '1rem',
+                      color: '#666',
+                      margin: '0'
+                    }}>
+                      Review distribution by country for {formatAppName(selectedApp)} ({timeFilter === 'last_30_days' ? 'Last 30 Days' : 'All Time'})
+                    </p>
+                  </div>
                 </div>
 
                 {/* Loading State */}
@@ -1058,7 +1123,7 @@ const ReviewCount = () => {
                               )}
 
                               {/* Country flag/icon */}
-                              <div style={{
+                              {/* <div style={{
                                 width: '60px',
                                 height: '60px',
                                 borderRadius: '50%',
@@ -1071,7 +1136,7 @@ const ReviewCount = () => {
                                 border: '2px solid rgba(255,255,255,0.3)'
                               }}>
                                 🌍
-                              </div>
+                              </div> */}
 
                               {/* Country name */}
                               <h4 style={{

@@ -61,6 +61,27 @@ const ReviewDistribution = ({ selectedApp, refreshKey }) => {
 
   const { total_reviews, distribution: dist } = distribution;
 
+  // Calculate max count for progress bar
+  const maxCount = Math.max(dist.five_star, dist.four_star, dist.three_star, dist.two_star, dist.one_star);
+
+  const renderDistributionItem = (stars, count, label) => {
+    const percentage = maxCount > 0 ? (count / maxCount) * 100 : 0;
+    return (
+      <div key={label} className="distribution-item">
+        <div className="star-label">{stars}</div>
+        <div className="distribution-bar-container">
+          <div className="distribution-bar">
+            <div
+              className="distribution-bar-fill"
+              style={{ width: `${percentage}%` }}
+            ></div>
+          </div>
+        </div>
+        <div className="count">{count}</div>
+      </div>
+    );
+  };
+
   return (
     <section className="review-distribution">
       <div className="distribution-header">
@@ -72,30 +93,11 @@ const ReviewDistribution = ({ selectedApp, refreshKey }) => {
       </div>
 
       <div className="distribution-grid">
-        <div className="distribution-item">
-          <div className="star-label">⭐⭐⭐⭐⭐</div>
-          <div className="count">{dist.five_star}</div>
-        </div>
-
-        <div className="distribution-item">
-          <div className="star-label">⭐⭐⭐⭐</div>
-          <div className="count">{dist.four_star}</div>
-        </div>
-
-        <div className="distribution-item">
-          <div className="star-label">⭐⭐⭐</div>
-          <div className="count">{dist.three_star}</div>
-        </div>
-
-        <div className="distribution-item">
-          <div className="star-label">⭐⭐</div>
-          <div className="count">{dist.two_star}</div>
-        </div>
-
-        <div className="distribution-item">
-          <div className="star-label">⭐</div>
-          <div className="count">{dist.one_star}</div>
-        </div>
+        {renderDistributionItem('5 ⭐', dist.five_star, 'five')}
+        {renderDistributionItem('4 ⭐', dist.four_star, 'four')}
+        {renderDistributionItem('3 ⭐', dist.three_star, 'three')}
+        {renderDistributionItem('2 ⭐', dist.two_star, 'two')}
+        {renderDistributionItem('1 ⭐', dist.one_star, 'one')}
       </div>
     </section>
   );

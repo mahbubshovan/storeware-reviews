@@ -76,38 +76,53 @@ const ReviewCreditSimple = () => {
 
   return (
     <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      padding: '20px'
+      maxWidth: '1400px',
+      width: '100%',
+      background: '#f8f9fa',
+      padding: '20px',
+      margin: '0 auto',
+      borderRadius: '16px',
     }}>
-      <div style={{ textAlign: 'center', color: 'white', padding: '20px' }}>
-        <h1>🎯 Agent Reviews Dashboard</h1>
-        <p>Track agent performance with Last 30 Days and All Time views</p>
+      {/* Green Header */}
+      <div style={{
+        background: 'linear-gradient(135deg, #10B981 0%, #0d9488 100%)',
+        color: 'white',
+        padding: '40px 20px',
+        textAlign: 'center',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        borderRadius: '12px'
+      }}>
+        <h1 style={{ margin: '0 0 10px 0', fontSize: '2.5rem' }}>🎯 Agent Reviews Dashboard</h1>
+        <p style={{ margin: '0', fontSize: '1.1rem', opacity: 0.95 }}>Track agent performance with Last 30 Days and All Time views</p>
+      </div>
 
-        {/* Debug Info */}
-        <div style={{ 
-          background: 'rgba(255,255,255,0.1)', 
-          padding: '10px', 
-          margin: '20px 0',
-          borderRadius: '8px',
-          fontSize: '14px'
-        }}>
-          <p>Debug: Apps loaded: {apps.length}, Selected: {selectedApp}, Stats: {agentStats.length}</p>
-          {error && <p style={{ color: '#ffcccb' }}>Error: {error}</p>}
-        </div>
+      {/* Main Content */}
+      <div style={{ padding: '40px 0px', maxWidth: '1200px', margin: '0 auto' }}>
+        {/* Error Message */}
+        {error && (
+          <div style={{
+            background: '#fee',
+            padding: '16px',
+            margin: '0 0 30px 0',
+            borderRadius: '8px',
+            fontSize: '14px',
+            color: '#c33',
+            border: '1px solid #fcc'
+          }}>
+            <p style={{ margin: '0' }}>{error}</p>
+          </div>
+        )}
 
         {/* App Selector */}
-        <div style={{ margin: '20px 0' }}>
+        <div style={{ marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{
-            background: 'rgba(255,255,255,0.1)',
-            borderRadius: '10px',
-            padding: '20px',
-            marginBottom: '20px'
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: '5px 0'
           }}>
-            <label style={{ 
-              display: 'block', 
-              marginBottom: '10px', 
-              color: 'white', 
+            <label style={{
+              color: '#333',
               fontWeight: 'bold',
               fontSize: '1.1rem'
             }}>
@@ -122,11 +137,12 @@ const ReviewCreditSimple = () => {
               style={{
                 padding: '12px 16px',
                 borderRadius: '8px',
-                border: 'none',
+                border: '2px solid #e5e7eb',
                 fontSize: '1rem',
-                minWidth: '200px',
+                minWidth: '250px',
                 background: 'white',
-                color: '#333'
+                color: '#333',
+                cursor: 'pointer'
               }}
             >
               <option value="all">Choose an app to analyze</option>
@@ -137,84 +153,87 @@ const ReviewCreditSimple = () => {
               ))}
             </select>
           </div>
+
+          {/* Time Filter Tabs */}
+          {selectedApp !== 'all' && (
+            <div style={{}}>
+              <div style={{ display: 'inline-flex', background: '#e5e7eb', borderRadius: '10px', padding: '5px' }}>
+                <button
+                  onClick={() => {
+                    console.log('Filter changed to: last_30_days');
+                    setTimeFilter('last_30_days');
+                  }}
+                  style={{
+                    padding: '12px 24px',
+                    background: timeFilter === 'last_30_days' ? '#10B981' : 'transparent',
+                    color: timeFilter === 'last_30_days' ? 'white' : '#666',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  📊 Last 30 Days
+                </button>
+                <button
+                  onClick={() => {
+                    console.log('Filter changed to: all_time');
+                    setTimeFilter('all_time');
+                  }}
+                  style={{
+                    padding: '12px 24px',
+                    background: timeFilter === 'all_time' ? '#10B981' : 'transparent',
+                    color: timeFilter === 'all_time' ? 'white' : '#666',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  🏆 All Time
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Time Filter Tabs */}
-        {selectedApp !== 'all' && (
-          <div style={{ margin: '30px 0' }}>
-            <div style={{ display: 'inline-flex', background: 'rgba(255,255,255,0.2)', borderRadius: '10px', padding: '5px' }}>
-              <button
-                onClick={() => {
-                  console.log('Filter changed to: last_30_days');
-                  setTimeFilter('last_30_days');
-                }}
-                style={{
-                  padding: '12px 24px',
-                  background: timeFilter === 'last_30_days' ? 'white' : 'transparent',
-                  color: timeFilter === 'last_30_days' ? '#667eea' : 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontWeight: 'bold'
-                }}
-              >
-                📊 Last 30 Days
-              </button>
-              <button
-                onClick={() => {
-                  console.log('Filter changed to: all_time');
-                  setTimeFilter('all_time');
-                }}
-                style={{
-                  padding: '12px 24px',
-                  background: timeFilter === 'all_time' ? 'white' : 'transparent',
-                  color: timeFilter === 'all_time' ? '#667eea' : 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontWeight: 'bold'
-                }}
-              >
-                🏆 All Time
-              </button>
-            </div>
-          </div>
-        )}
+        
 
         {/* Content */}
         <div style={{
-          background: 'rgba(255,255,255,0.1)',
+          background: 'white',
           borderRadius: '15px',
-          padding: '30px',
-          margin: '20px auto',
-          maxWidth: '1000px',
+          padding: '40px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
           minHeight: '400px'
         }}>
           {selectedApp === 'all' ? (
             <div style={{ textAlign: 'center', padding: '60px 20px' }}>
               <div style={{ fontSize: '4rem', marginBottom: '20px' }}>📱</div>
-              <h2 style={{ marginBottom: '15px', color: 'white' }}>Choose an App to Analyze</h2>
-              <p style={{ fontSize: '18px', opacity: 0.8, color: 'white' }}>
+              <h2 style={{ marginBottom: '15px', color: '#333' }}>Choose an App to Analyze</h2>
+              <p style={{ fontSize: '18px', color: '#666' }}>
                 Select an app from the dropdown above to view agent review statistics
               </p>
             </div>
           ) : loading ? (
             <div style={{ textAlign: 'center', padding: '60px 20px' }}>
               <div style={{ fontSize: '3rem', marginBottom: '20px' }}>⏳</div>
-              <h2 style={{ color: 'white' }}>Loading Agent Statistics...</h2>
+              <h2 style={{ color: '#333' }}>Loading Agent Statistics...</h2>
             </div>
           ) : error ? (
             <div style={{ textAlign: 'center', padding: '60px 20px' }}>
               <div style={{ fontSize: '3rem', marginBottom: '20px' }}>⚠️</div>
-              <h2 style={{ color: 'white', marginBottom: '15px' }}>No Data Available</h2>
-              <p style={{ fontSize: '16px', opacity: 0.9, color: 'white' }}>{error}</p>
+              <h2 style={{ color: '#333', marginBottom: '15px' }}>No Data Available</h2>
+              <p style={{ fontSize: '16px', color: '#666' }}>{error}</p>
             </div>
           ) : (
             <>
-              <h2 style={{ marginBottom: '30px', color: 'white', textAlign: 'center' }}>
+              <h2 style={{ marginBottom: '30px', color: '#333', textAlign: 'center' }}>
                 {timeFilter === 'last_30_days' ? '📊 Last 30 Days Statistics' : '🏆 All Time Statistics'}
                 <br />
-                <span style={{ fontSize: '1.2rem', fontWeight: 'normal', opacity: 0.8 }}>
+                <span style={{ fontSize: '1.2rem', fontWeight: 'normal', color: '#666' }}>
                   for {selectedApp}
                 </span>
               </h2>
@@ -222,8 +241,8 @@ const ReviewCreditSimple = () => {
               {agentStats.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px 20px' }}>
                   <div style={{ fontSize: '3rem', marginBottom: '20px' }}>📋</div>
-                  <h3 style={{ color: 'white', marginBottom: '15px' }}>No Agent Assignments Found</h3>
-                  <p style={{ fontSize: '16px', opacity: 0.9, color: 'white' }}>
+                  <h3 style={{ color: '#333', marginBottom: '15px' }}>No Agent Assignments Found</h3>
+                  <p style={{ fontSize: '16px', color: '#666' }}>
                     No reviews have been assigned to agents for {selectedApp} in the selected time period.
                   </p>
                 </div>
@@ -240,21 +259,21 @@ const ReviewCreditSimple = () => {
                       <div
                         key={index}
                         style={{
-                          background: 'rgba(255,255,255,0.95)',
+                          background: '#f8f9fa',
                           borderRadius: '12px',
                           padding: '25px',
                           color: '#333',
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                          border: index === 0 && agent.review_count > 0 ? '3px solid #667eea' : 'none',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                          border: index === 0 && agent.review_count > 0 ? '3px solid #10B981' : '1px solid #e5e7eb',
                           position: 'relative'
                         }}
                       >
                         {index === 0 && agent.review_count > 0 && (
                           <div style={{
                             position: 'absolute',
-                            top: '-10px',
+                            top: '-15px',
                             right: '15px',
-                            background: '#667eea',
+                            background: '#10B981',
                             color: 'white',
                             padding: '5px 12px',
                             borderRadius: '15px',
@@ -264,12 +283,12 @@ const ReviewCreditSimple = () => {
                             🏆 Top Performer
                           </div>
                         )}
-                        
+
                         <div style={{ textAlign: 'center' }}>
                           <div style={{
                             fontSize: '2.5rem',
                             fontWeight: 'bold',
-                            color: '#667eea',
+                            color: '#10B981',
                             marginBottom: '10px'
                           }}>
                             {agent.review_count}
@@ -289,17 +308,22 @@ const ReviewCreditSimple = () => {
                           }}>
                             Reviews Handled
                           </div>
-                          
+
                           {agent.review_count > 0 && (
                             <div style={{
-                              background: '#f8f9fa',
+                              background: 'white',
                               borderRadius: '8px',
                               padding: '12px',
                               fontSize: '0.85rem',
-                              color: '#666'
+                              color: '#666',
+                              border: '1px solid #e5e7eb',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '5px'
+
                             }}>
+                              <div>📱 App: <strong>{selectedApp}</strong></div>
                               <div>📅 Period: {timeFilter === 'last_30_days' ? 'Last 30 Days' : 'All Time'}</div>
-                              <div>📱 App: {selectedApp}</div>
                             </div>
                           )}
                         </div>

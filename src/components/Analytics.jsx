@@ -3,7 +3,7 @@ import './Analytics.css';
 import { useCache } from '../context/CacheContext';
 
 const Analytics = () => {
-  const [selectedApp, setSelectedApp] = useState('StoreSEO'); // Default to StoreSEO
+  const [selectedApp, setSelectedApp] = useState(''); // Start with no app selected
   const [analyticsData, setAnalyticsData] = useState(null);
   const [latestReviews, setLatestReviews] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -20,6 +20,10 @@ const Analytics = () => {
 
   const handleAppChange = (app) => {
     setSelectedApp(app);
+    // Clear old data immediately when app changes
+    setAnalyticsData(null);
+    setLatestReviews([]);
+    setError(null);
   };
 
   const fetchAnalyticsData = async (appName) => {
