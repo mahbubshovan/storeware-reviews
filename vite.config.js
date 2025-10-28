@@ -4,14 +4,16 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
     plugins: [react()],
+    publicDir: false,
     build: {
-        outDir: 'dist',
+        outDir: '.',
         assetsDir: 'assets',
-        emptyOutDir: true,
+        emptyOutDir: false,
         // Ensure relative paths in production
         base: './',
         minify: false,
         rollupOptions: {
+            input: 'dashboard.html',
             output: {
                 entryFileNames: 'assets/index.js',
                 assetFileNames: 'assets/index.css',

@@ -78,8 +78,8 @@ if (preg_match('/\.(css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/', $uri
     }
 }
 
-// For all other requests (frontend routes), serve index.html
-$indexPath = __DIR__ . '/index.html';
+// For all other requests (frontend routes), serve dashboard.html
+$indexPath = __DIR__ . '/dashboard.html';
 if (file_exists($indexPath)) {
     header('Content-Type: text/html');
     readfile($indexPath);
