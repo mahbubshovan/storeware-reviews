@@ -21,7 +21,7 @@ export default defineConfig({
             }
         }
     ],
-    publicDir: true,
+    publicDir: 'public-resources',
     build: {
         outDir: '.',
         assetsDir: 'assets',
