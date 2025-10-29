@@ -40,6 +40,7 @@ class UniversalLiveScraper {
         }
 
         $allReviews = [];
+        $consecutiveEmptyPages = 0;
 
         // Scrape ALL pages until no more reviews found (complete historical data)
         for ($page = 1; $page <= 200; $page++) {
@@ -59,9 +60,19 @@ class UniversalLiveScraper {
 
             $pageReviews = $this->parseReviewsFromHTML($html);
             if (empty($pageReviews)) {
-                echo "⚠️ No reviews found on page $page - STOPPING\n";
-                break;
+                $consecutiveEmptyPages++;
+                echo "⚠️ No reviews found on page $page (empty count: $consecutiveEmptyPages)\n";
+
+                // Only stop after 3 consecutive empty pages
+                if ($consecutiveEmptyPages >= 3) {
+                    echo "⚠️ Reached 3 consecutive empty pages - STOPPING\n";
+                    break;
+                }
+                continue;
             }
+
+            // Reset empty page counter when we find reviews
+            $consecutiveEmptyPages = 0;
 
             $addedFromPage = 0;
             $oldestOnPage = null;
@@ -486,9 +497,10 @@ class UniversalLiveScraper {
         echo "🔄 FALLBACK MODE: Scraping ALL reviews for $appName (not just recent)\n";
 
         $allReviews = [];
+        $consecutiveEmptyPages = 0;
 
         // Scrape pages until we get all reviews (no date filtering)
-        for ($page = 1; $page <= 100; $page++) { // Scrape up to 100 pages for complete historical data
+        for ($page = 1; $page <= 200; $page++) { // Scrape up to 200 pages for complete historical data
             $url = $baseUrl . "?sort_by=newest&page=$page";
             echo "📄 Historical page $page: $url\n";
 
@@ -500,9 +512,19 @@ class UniversalLiveScraper {
 
             $pageReviews = $this->parseReviewsFromHTML($html);
             if (empty($pageReviews)) {
-                echo "⚠️ No reviews found on historical page $page - STOPPING\n";
-                break;
+                $consecutiveEmptyPages++;
+                echo "⚠️ No reviews found on historical page $page (empty count: $consecutiveEmptyPages)\n";
+
+                // Only stop after 3 consecutive empty pages
+                if ($consecutiveEmptyPages >= 3) {
+                    echo "📅 Reached 3 consecutive empty pages - STOPPING\n";
+                    break;
+                }
+                continue;
             }
+
+            // Reset empty page counter when we find reviews
+            $consecutiveEmptyPages = 0;
 
             // Add ALL reviews (no date filtering)
             foreach ($pageReviews as $review) {
@@ -510,15 +532,13 @@ class UniversalLiveScraper {
                 echo "✅ Historical: {$review['review_date']} - {$review['rating']}★ - {$review['store_name']}\n";
             }
 
-            echo "📊 Historical page $page: Found " . count($pageReviews) . " reviews\n";
+            echo "📊 Historical page $page: Found " . count($pageReviews) . " reviews, total: " . count($allReviews) . "\n";
 
-            // If we got fewer than expected reviews, we might be at the end
-            if (count($pageReviews) < 10) {
-                echo "📅 Reached end of reviews, stopping\n";
-                break;
-            }
+            // Add delay between requests
+            sleep(1);
         }
 
+        echo "✅ Historical scraping complete: " . count($allReviews) . " total reviews\n";
         return $allReviews;
     }
 
