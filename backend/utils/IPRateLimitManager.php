@@ -198,22 +198,37 @@ class IPRateLimitManager {
     }
     
     /**
+     * Clear all rate limits (for emergency fixes)
+     */
+    public function clearAllRateLimits() {
+        try {
+            $stmt = $this->conn->prepare("DELETE FROM ip_scrape_limits");
+            $stmt->execute();
+            error_log("All rate limits cleared");
+            return true;
+        } catch (Exception $e) {
+            error_log("Clear rate limits error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Clean up old rate limit records (older than 7 days)
      */
     public function cleanup() {
         try {
             $stmt = $this->conn->prepare("
-                DELETE FROM ip_scrape_limits 
+                DELETE FROM ip_scrape_limits
                 WHERE cooldown_expiry < DATE_SUB(NOW(), INTERVAL 7 DAY)
             ");
             $stmt->execute();
-            
+
             $stmt = $this->conn->prepare("
-                DELETE FROM scrape_activity_log 
+                DELETE FROM scrape_activity_log
                 WHERE timestamp < DATE_SUB(NOW(), INTERVAL 30 DAY)
             ");
             $stmt->execute();
-            
+
         } catch (Exception $e) {
             error_log("Cleanup error: " . $e->getMessage());
         }

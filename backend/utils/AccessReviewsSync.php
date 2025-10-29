@@ -110,11 +110,12 @@ class AccessReviewsSync {
     /**
      * Add new reviews from last 30 days to access_reviews table
      * SMART SYNC: Preserves existing earned_by values by matching content and date
+     * NO LIMITS - Syncs ALL reviews from the last 30 days
      */
     private function addNewReviews($conn) {
         $thirtyDaysAgo = date('Y-m-d', strtotime('-30 days'));
 
-        // Get all reviews from last 30 days
+        // Get ALL reviews from last 30 days - NO LIMIT
         $stmt = $conn->prepare("
             SELECT r.id, r.app_name, r.review_date, r.review_content, r.country_name, r.rating
             FROM reviews r
@@ -129,6 +130,8 @@ class AccessReviewsSync {
             echo "No recent reviews found to sync\n";
             return;
         }
+
+        echo "📊 Found " . count($allRecentReviews) . " reviews from last 30 days to sync\n";
 
         $addedCount = 0;
         $preservedCount = 0;
@@ -237,6 +240,8 @@ class AccessReviewsSync {
     
     /**
      * Get all access reviews grouped by app name with date filtering
+     * IMPORTANT: Queries from main reviews table to show SAME data as live Shopify pages
+     * This ensures the Access Reviews page matches the live Shopify app store exactly
      */
     public function getAccessReviews($dateRange = '30_days') {
         try {
@@ -245,10 +250,12 @@ class AccessReviewsSync {
             // Calculate date filter based on range
             $dateFilter = $this->getDateFilter($dateRange);
 
+            // Query from main reviews table (not access_reviews) to get all data
+            // This ensures we show the same reviews as the live Shopify pages
             $stmt = $conn->prepare("
-                SELECT app_name, review_date, review_content, country_name, rating, earned_by, id, original_review_id
-                FROM access_reviews
-                WHERE review_date >= ?
+                SELECT id, app_name, review_date, review_content, country_name, rating, earned_by
+                FROM reviews
+                WHERE review_date >= ? AND is_active = TRUE
                 ORDER BY app_name, review_date DESC
             ");
 
@@ -318,6 +325,7 @@ class AccessReviewsSync {
     
     /**
      * Get statistics for access reviews with date filtering
+     * IMPORTANT: Queries from main reviews table to show SAME stats as live Shopify pages
      */
     public function getAccessReviewsStats($dateRange = '30_days') {
         try {
@@ -326,21 +334,21 @@ class AccessReviewsSync {
             // Calculate date filter based on range
             $dateFilter = $this->getDateFilter($dateRange);
 
-            // Total reviews in date range
-            $stmt = $conn->prepare("SELECT COUNT(*) FROM access_reviews WHERE review_date >= ?");
+            // Total reviews in date range from main reviews table
+            $stmt = $conn->prepare("SELECT COUNT(*) FROM reviews WHERE review_date >= ? AND is_active = TRUE");
             $stmt->execute([$dateFilter]);
             $totalReviews = $stmt->fetchColumn();
 
-            // Reviews with earned_by assigned
-            $stmt = $conn->prepare("SELECT COUNT(*) FROM access_reviews WHERE review_date >= ? AND earned_by IS NOT NULL AND earned_by != ''");
+            // Reviews with earned_by assigned from main reviews table
+            $stmt = $conn->prepare("SELECT COUNT(*) FROM reviews WHERE review_date >= ? AND is_active = TRUE AND earned_by IS NOT NULL AND earned_by != ''");
             $stmt->execute([$dateFilter]);
             $assignedReviews = $stmt->fetchColumn();
 
-            // Reviews by app
+            // Reviews by app from main reviews table
             $stmt = $conn->prepare("
                 SELECT app_name, COUNT(*) as count
-                FROM access_reviews
-                WHERE review_date >= ?
+                FROM reviews
+                WHERE review_date >= ? AND is_active = TRUE
                 GROUP BY app_name
                 ORDER BY count DESC
             ");
@@ -354,7 +362,7 @@ class AccessReviewsSync {
             foreach ($reviewsByApp as $app) {
                 $appName = $app['app_name'];
 
-                // Get actual total from reviews table
+                // Get actual total from reviews table (all reviews, not just date range)
                 $totalStmt = $conn->prepare("
                     SELECT COUNT(*) as total FROM reviews
                     WHERE app_name = ? AND is_active = TRUE
