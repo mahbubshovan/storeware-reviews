@@ -197,8 +197,8 @@ class EnhancedUniversalScraper extends UniversalLiveScraper {
      */
     private function getCachedData($appName) {
         try {
-            $filters = ['app_name' => $appName];
-            $reviews = $this->repository->getPaginatedReviews(1, 100, $filters); // Get first 100 reviews
+            $filters = ['app' => $appName];
+            $reviews = $this->repository->getPaginatedReviews(1, 10000, $filters); // Get ALL reviews from database
             $stats = $this->repository->getStatistics($appName);
 
             return [

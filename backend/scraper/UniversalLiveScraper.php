@@ -235,19 +235,20 @@ class UniversalLiveScraper {
      */
     private function extractReviewData($xpath, $node) {
         try {
-            // Extract rating (count filled stars)
-            $starNodes = $xpath->query('.//svg[contains(@class, "tw-fill-fg-primary")]', $node);
-            $rating = $starNodes->length;
-
-            // If no stars found, try alternative selectors
-            if ($rating === 0) {
-                $starNodes = $xpath->query('.//div[contains(@aria-label, "stars")]', $node);
-                if ($starNodes->length > 0) {
-                    $ariaLabel = $starNodes->item(0)->getAttribute('aria-label');
-                    if (preg_match('/(\d+)\s*out\s*of\s*\d+\s*stars/', $ariaLabel, $matches)) {
-                        $rating = intval($matches[1]);
-                    }
+            // Extract rating from aria-label (most reliable method)
+            $rating = 0;
+            $starNodes = $xpath->query('.//div[contains(@aria-label, "stars")]', $node);
+            if ($starNodes->length > 0) {
+                $ariaLabel = $starNodes->item(0)->getAttribute('aria-label');
+                if (preg_match('/(\d+)\s*out\s*of\s*\d+\s*stars/', $ariaLabel, $matches)) {
+                    $rating = intval($matches[1]);
                 }
+            }
+
+            // If aria-label extraction failed, try counting filled stars
+            if ($rating === 0) {
+                $starNodes = $xpath->query('.//svg[contains(@class, "tw-fill-fg-primary")]', $node);
+                $rating = $starNodes->length;
             }
 
             // Extract date - look for multiple year patterns

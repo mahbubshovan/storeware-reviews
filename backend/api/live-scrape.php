@@ -12,8 +12,8 @@ header('Pragma: no-cache');
 header('Expires: 0');
 
 // Increase execution time for scraping
-set_time_limit(120);
-ini_set('max_execution_time', 120);
+set_time_limit(300);
+ini_set('max_execution_time', 300);
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
