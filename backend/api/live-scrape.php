@@ -57,40 +57,47 @@ try {
     $db = new Database();
     $conn = $db->getConnection();
 
-    // Query current data from the main reviews table
+    // First, try to get metadata from app_metadata table (contains Shopify's actual data)
     $stmt = $conn->prepare("
         SELECT
-            id, app_name, store_name, country_name, rating, review_content, review_date,
-            earned_by, is_featured, created_at, updated_at
-        FROM reviews
-        WHERE app_name = ? AND is_active = TRUE
-        ORDER BY review_date DESC, created_at DESC
+            total_reviews, overall_rating,
+            five_star_total, four_star_total, three_star_total,
+            two_star_total, one_star_total, last_updated
+        FROM app_metadata
+        WHERE app_name = ?
+        LIMIT 1
     ");
     $stmt->execute([$appName]);
-    $reviews = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $metadata = $stmt->fetch(PDO::FETCH_ASSOC);
 
     // Clear any buffered output
     ob_end_clean();
 
-    if (!empty($reviews)) {
-        $totalReviews = count($reviews);
+    if ($metadata && $metadata['total_reviews'] > 0) {
+        // Use metadata from Shopify (most accurate)
+        $totalReviews = (int)$metadata['total_reviews'];
+        $averageRating = (float)$metadata['overall_rating'];
 
-        // Calculate rating distribution
-        $ratingDistribution = [5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0];
-        $totalRating = 0;
+        $ratingDistribution = [
+            5 => (int)$metadata['five_star_total'],
+            4 => (int)$metadata['four_star_total'],
+            3 => (int)$metadata['three_star_total'],
+            2 => (int)$metadata['two_star_total'],
+            1 => (int)$metadata['one_star_total']
+        ];
 
-        foreach ($reviews as $review) {
-            $rating = (int)$review['rating'];
-            if (isset($ratingDistribution[$rating])) {
-                $ratingDistribution[$rating]++;
-            }
-            $totalRating += $rating;
-        }
-
-        $averageRating = $totalReviews > 0 ? round($totalRating / $totalReviews, 2) : 0;
-
-        // Get latest 10 reviews for display
-        $latestReviews = array_slice($reviews, 0, 10);
+        // Get latest 10 reviews from database for display
+        $stmt = $conn->prepare("
+            SELECT
+                id, app_name, store_name, country_name, rating, review_content, review_date,
+                earned_by, is_featured, created_at, updated_at
+            FROM reviews
+            WHERE app_name = ? AND is_active = TRUE
+            ORDER BY review_date DESC, created_at DESC
+            LIMIT 10
+        ");
+        $stmt->execute([$appName]);
+        $latestReviews = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         echo json_encode([
             'success' => true,
@@ -106,11 +113,58 @@ try {
             ]
         ]);
     } else {
-        echo json_encode([
-            'success' => false,
-            'error' => 'No reviews found for this app',
-            'app_name' => $appName
-        ]);
+        // Fallback: calculate from database if metadata not available
+        $stmt = $conn->prepare("
+            SELECT
+                id, app_name, store_name, country_name, rating, review_content, review_date,
+                earned_by, is_featured, created_at, updated_at
+            FROM reviews
+            WHERE app_name = ? AND is_active = TRUE
+            ORDER BY review_date DESC, created_at DESC
+        ");
+        $stmt->execute([$appName]);
+        $reviews = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if (!empty($reviews)) {
+            $totalReviews = count($reviews);
+
+            // Calculate rating distribution
+            $ratingDistribution = [5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0];
+            $totalRating = 0;
+
+            foreach ($reviews as $review) {
+                $rating = (int)$review['rating'];
+                if (isset($ratingDistribution[$rating])) {
+                    $ratingDistribution[$rating]++;
+                }
+                $totalRating += $rating;
+            }
+
+            $averageRating = $totalReviews > 0 ? round($totalRating / $totalReviews, 2) : 0;
+
+            // Get latest 10 reviews for display
+            $latestReviews = array_slice($reviews, 0, 10);
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'app_name' => $appName,
+                    'total_reviews' => $totalReviews,
+                    'average_rating' => $averageRating,
+                    'rating_distribution' => $ratingDistribution,
+                    'rating_distribution_total' => $totalReviews,
+                    'latest_reviews' => $latestReviews,
+                    'data_source' => 'live_scrape',
+                    'scraped_at' => date('Y-m-d H:i:s')
+                ]
+            ]);
+        } else {
+            echo json_encode([
+                'success' => false,
+                'error' => 'No reviews found for this app',
+                'app_name' => $appName
+            ]);
+        }
     }
 
 } catch (Exception $e) {

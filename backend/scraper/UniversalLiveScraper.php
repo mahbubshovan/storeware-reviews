@@ -88,6 +88,13 @@ class UniversalLiveScraper {
             }
         }
 
+        // Update app metadata with correct total count from Shopify
+        $mainUrl = "https://apps.shopify.com/{$appSlug}/reviews";
+        $mainHtml = $this->fetchPage($mainUrl);
+        if (!empty($mainHtml)) {
+            $this->updateAppMetadata($appName, $mainHtml);
+        }
+
         return [
             'success' => true,
             'message' => "Checked page 1, found $newReviewsCount new reviews",

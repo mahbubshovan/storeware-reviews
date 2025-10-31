@@ -383,15 +383,26 @@ class EnhancedAnalytics {
         $stmt->execute([$appName]);
         $last30DaysCount = $stmt->fetchColumn();
 
-        // Get total reviews from reviews table (primary data source) - only active reviews
-        $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM reviews WHERE app_name = ? AND is_active = TRUE');
+        // Get total reviews from app_metadata (Shopify's actual count) if available
+        $stmt = $this->pdo->prepare('SELECT total_reviews, overall_rating FROM app_metadata WHERE app_name = ?');
         $stmt->execute([$appName]);
-        $totalReviews = $stmt->fetchColumn();
+        $metadata = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        // Get average rating - only active reviews
-        $stmt = $this->pdo->prepare('SELECT AVG(rating) FROM reviews WHERE app_name = ? AND is_active = TRUE');
-        $stmt->execute([$appName]);
-        $averageRating = round((int) $stmt->fetchColumn(), 1);
+        if ($metadata && $metadata['total_reviews'] > 0) {
+            // Use Shopify's actual total count from metadata
+            $totalReviews = (int)$metadata['total_reviews'];
+            $averageRating = (float)$metadata['overall_rating'];
+        } else {
+            // Fallback to database count if metadata not available
+            $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM reviews WHERE app_name = ? AND is_active = TRUE');
+            $stmt->execute([$appName]);
+            $totalReviews = $stmt->fetchColumn();
+
+            // Get average rating - only active reviews
+            $stmt = $this->pdo->prepare('SELECT AVG(rating) FROM reviews WHERE app_name = ? AND is_active = TRUE');
+            $stmt->execute([$appName]);
+            $averageRating = round((int) $stmt->fetchColumn(), 1);
+        }
 
         return [
             'this_month_count' => (int)$thisMonthCount,
