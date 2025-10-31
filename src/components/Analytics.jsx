@@ -169,7 +169,7 @@ const Analytics = () => {
         // Clear cache for this app to force fresh data on next load
         // (Don't cache live scrape results to ensure freshness)
 
-        setLiveScrapingMessage('✅ Live scrape done, and latest data stored');
+        setLiveScrapingMessage('✅ Live scraping completed and new review added.');
 
         // Auto-clear message after 5 seconds
         setTimeout(() => {
