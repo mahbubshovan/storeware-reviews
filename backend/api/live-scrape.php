@@ -37,14 +37,14 @@ try {
         exit;
     }
 
-    // Map app names to slugs for scraping
+    // Map app names to slugs for scraping - VERIFIED SHOPIFY SLUGS
     $appSlugs = [
         'StoreSEO' => 'storeseo',
         'StoreFAQ' => 'storefaq',
-        'EasyFlow' => 'easyflow',
-        'BetterDocs FAQ Knowledge Base' => 'better-docs-faq-knowledge-base',
+        'EasyFlow' => 'product-options-4',
+        'BetterDocs FAQ Knowledge Base' => 'betterdocs-knowledgebase',
         'Vidify' => 'vidify',
-        'TrustSync' => 'trustsync'
+        'TrustSync' => 'customer-review-app'
     ];
 
     $appSlug = $appSlugs[$appName] ?? strtolower(str_replace(' ', '-', $appName));

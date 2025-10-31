@@ -538,21 +538,58 @@ class UniversalLiveScraper {
                 }
             }
 
-            // Method 2: If Method 1 failed, try to extract from text content with regex
+            // Method 2: If Method 1 failed, try to extract from text content with DOMDocument
             if ($fiveStarTotal + $fourStarTotal + $threeStarTotal + $twoStarTotal + $oneStarTotal == 0) {
-                echo "⚠️ Method 1 failed, trying regex extraction from page text...\n";
+                echo "⚠️ Method 1 failed, trying DOMDocument extraction...\n";
 
-                // Look for patterns like "321" followed by "5" in the HTML
-                // This is more robust for different page layouts
-                if (preg_match_all('/(\d+)\s+(?:reviews?|ratings?)\s+(?:are\s+)?(\d)\s*(?:star|★)/', $html, $matches, PREG_SET_ORDER)) {
-                    foreach ($matches as $match) {
-                        $count = intval($match[1]);
-                        $rating = intval($match[2]);
-                        if ($rating >= 1 && $rating <= 5) {
-                            $this->setStarCount($rating, $count, $fiveStarTotal, $fourStarTotal, $threeStarTotal, $twoStarTotal, $oneStarTotal);
-                            echo "✅ Found {$rating}★: $count reviews (from regex)\n";
+                // Use DOMDocument to parse and extract rating distribution
+                $tempDom = new DOMDocument();
+                @$tempDom->loadHTML($html);
+                $tempXpath = new DOMXPath($tempDom);
+
+                // Look for all text nodes that contain numbers and are near rating indicators
+                $allText = $tempDom->documentElement->textContent;
+
+                // Extract all numbers from the page
+                if (preg_match_all('/\b(\d+)\b/', $allText, $allNumbers)) {
+                    $numbers = array_map('intval', $allNumbers[1]);
+
+                    // Look for the pattern where we have 5 consecutive numbers that add up to the total
+                    for ($i = 0; $i < count($numbers) - 4; $i++) {
+                        $sum = $numbers[$i] + $numbers[$i+1] + $numbers[$i+2] + $numbers[$i+3] + $numbers[$i+4];
+
+                        // Check if this set of 5 numbers adds up to the total reviews
+                        if ($sum == $totalReviews && $totalReviews > 0) {
+                            $fiveStarTotal = $numbers[$i];
+                            $fourStarTotal = $numbers[$i+1];
+                            $threeStarTotal = $numbers[$i+2];
+                            $twoStarTotal = $numbers[$i+3];
+                            $oneStarTotal = $numbers[$i+4];
+
+                            echo "✅ Found distribution: 5★:$fiveStarTotal, 4★:$fourStarTotal, 3★:$threeStarTotal, 2★:$twoStarTotal, 1★:$oneStarTotal\n";
+                            break;
                         }
                     }
+                }
+
+                // Fallback: Look for patterns like "321" followed by "5" in the HTML
+                if ($fiveStarTotal + $fourStarTotal + $threeStarTotal + $twoStarTotal + $oneStarTotal == 0) {
+                    if (preg_match_all('/(\d+)\s+(?:reviews?|ratings?)\s+(?:are\s+)?(\d)\s*(?:star|★)/', $html, $matches, PREG_SET_ORDER)) {
+                        foreach ($matches as $match) {
+                            $count = intval($match[1]);
+                            $rating = intval($match[2]);
+                            if ($rating >= 1 && $rating <= 5) {
+                                $this->setStarCount($rating, $count, $fiveStarTotal, $fourStarTotal, $threeStarTotal, $twoStarTotal, $oneStarTotal);
+                                echo "✅ Found {$rating}★: $count reviews (from regex)\n";
+                            }
+                        }
+                    }
+                }
+
+                // Last resort: Calculate from scraped reviews if still no data
+                if ($fiveStarTotal + $fourStarTotal + $threeStarTotal + $twoStarTotal + $oneStarTotal == 0) {
+                    echo "⚠️ Could not extract distribution from page, calculating from scraped reviews...\n";
+                    $this->calculateRatingDistributionFromScrapedData($appName, $fiveStarTotal, $fourStarTotal, $threeStarTotal, $twoStarTotal, $oneStarTotal);
                 }
             }
 
