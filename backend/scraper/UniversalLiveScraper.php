@@ -16,6 +16,87 @@ class UniversalLiveScraper {
     }
     
     /**
+     * Scrape only the first page of reviews to check for new reviews
+     * Used by Live Scrape button for lightweight monitoring
+     */
+    public function scrapeFirstPageOnly($appSlug, $appName = null) {
+        if (!$appName) {
+            $appName = ucfirst($appSlug);
+        }
+
+        $baseUrl = "https://apps.shopify.com/$appSlug/reviews";
+        $url = $baseUrl . "?sort_by=newest&page=1";
+
+        $html = $this->fetchPage($url);
+        if (!$html) {
+            return ['success' => false, 'message' => 'Failed to fetch page 1'];
+        }
+
+        $pageReviews = $this->parseReviewsFromHTML($html);
+        if (empty($pageReviews)) {
+            return ['success' => false, 'message' => 'No reviews found on page 1'];
+        }
+
+        // Save new reviews to database
+        $newReviewsCount = 0;
+        $conn = $this->dbManager->getConnection();
+
+        foreach ($pageReviews as $review) {
+            try {
+                // Check if review already exists
+                $stmt = $conn->prepare("
+                    SELECT id FROM reviews
+                    WHERE app_name = ? AND store_name = ? AND review_date = ?
+                    LIMIT 1
+                ");
+                $stmt->execute([$appName, $review['store_name'], $review['review_date']]);
+                $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if (!$existing) {
+                    // New review - save it
+                    $stmt = $conn->prepare("
+                        INSERT INTO reviews (app_name, store_name, country_name, rating, review_content, review_date, is_active, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, TRUE, NOW())
+                    ");
+                    $stmt->execute([
+                        $appName,
+                        $review['store_name'],
+                        $review['country_name'],
+                        $review['rating'],
+                        $review['review_content'],
+                        $review['review_date']
+                    ]);
+
+                    // Also add to access_reviews for last 30 days
+                    $stmt = $conn->prepare("
+                        INSERT INTO access_reviews (app_name, store_name, country_name, rating, review_content, review_date, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, NOW())
+                    ");
+                    $stmt->execute([
+                        $appName,
+                        $review['store_name'],
+                        $review['country_name'],
+                        $review['rating'],
+                        $review['review_content'],
+                        $review['review_date']
+                    ]);
+
+                    $newReviewsCount++;
+                }
+            } catch (Exception $e) {
+                // Skip if error (duplicate or other issue)
+            }
+        }
+
+        return [
+            'success' => true,
+            'message' => "Checked page 1, found $newReviewsCount new reviews",
+            'new_reviews_count' => $newReviewsCount,
+            'total_on_page' => count($pageReviews)
+        ];
+    }
+
+    /**
      * Scrape any Shopify app reviews live
      */
     public function scrapeApp($appSlug, $appName = null, $targetCount = null) {

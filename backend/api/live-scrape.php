@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../scraper/UniversalLiveScraper.php';
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
@@ -36,11 +37,27 @@ try {
         exit;
     }
 
+    // Map app names to slugs for scraping
+    $appSlugs = [
+        'StoreSEO' => 'storeseo',
+        'StoreFAQ' => 'storefaq',
+        'EasyFlow' => 'easyflow',
+        'BetterDocs FAQ Knowledge Base' => 'better-docs-faq-knowledge-base',
+        'Vidify' => 'vidify',
+        'TrustSync' => 'trustsync'
+    ];
+
+    $appSlug = $appSlugs[$appName] ?? strtolower(str_replace(' ', '-', $appName));
+
+    // Scrape fresh data from Shopify (page 1 only for new reviews)
+    $scraper = new UniversalLiveScraper();
+    $scrapeResult = $scraper->scrapeFirstPageOnly($appSlug, $appName);
+
     // Get database connection
     $db = new Database();
     $conn = $db->getConnection();
 
-    // Query from the main reviews table (not review_repository)
+    // Query current data from the main reviews table
     $stmt = $conn->prepare("
         SELECT
             id, app_name, store_name, country_name, rating, review_content, review_date,
@@ -85,8 +102,7 @@ try {
                 'rating_distribution_total' => $totalReviews,
                 'latest_reviews' => $latestReviews,
                 'data_source' => 'live_scrape',
-                'scraped_at' => date('Y-m-d H:i:s'),
-                'note' => 'This data was scraped directly from the live Shopify app store page'
+                'scraped_at' => date('Y-m-d H:i:s')
             ]
         ]);
     } else {
