@@ -507,14 +507,13 @@ class UniversalLiveScraper {
             }
 
             // Extract individual star rating counts from the page
-            // Look for rating filter links that contain the star counts
             $dom = new DOMDocument();
             @$dom->loadHTML($html);
             $xpath = new DOMXPath($dom);
 
-            // Try to find rating distribution from filter links
+            // Method 1: Try to find rating distribution from filter links with multiple patterns
             for ($rating = 5; $rating >= 1; $rating--) {
-                // Look for links with href containing ratings filter
+                // Pattern 1: Look for links with href containing ratings filter
                 $ratingLinks = $xpath->query("//a[contains(@href, 'ratings%5B%5D=$rating')]");
 
                 foreach ($ratingLinks as $link) {
@@ -539,10 +538,35 @@ class UniversalLiveScraper {
                 }
             }
 
-            // If we couldn't extract individual star counts, calculate from scraped reviews
+            // Method 2: If Method 1 failed, try to extract from text content with regex
+            if ($fiveStarTotal + $fourStarTotal + $threeStarTotal + $twoStarTotal + $oneStarTotal == 0) {
+                echo "⚠️ Method 1 failed, trying regex extraction from page text...\n";
+
+                // Look for patterns like "321" followed by "5" in the HTML
+                // This is more robust for different page layouts
+                if (preg_match_all('/(\d+)\s+(?:reviews?|ratings?)\s+(?:are\s+)?(\d)\s*(?:star|★)/', $html, $matches, PREG_SET_ORDER)) {
+                    foreach ($matches as $match) {
+                        $count = intval($match[1]);
+                        $rating = intval($match[2]);
+                        if ($rating >= 1 && $rating <= 5) {
+                            $this->setStarCount($rating, $count, $fiveStarTotal, $fourStarTotal, $threeStarTotal, $twoStarTotal, $oneStarTotal);
+                            echo "✅ Found {$rating}★: $count reviews (from regex)\n";
+                        }
+                    }
+                }
+            }
+
+            // Method 3: If still no data, calculate from scraped reviews
             if ($fiveStarTotal + $fourStarTotal + $threeStarTotal + $twoStarTotal + $oneStarTotal == 0) {
                 echo "⚠️ No rating distribution found in HTML, calculating from scraped reviews...\n";
                 $this->calculateRatingDistributionFromScrapedData($appName, $fiveStarTotal, $fourStarTotal, $threeStarTotal, $twoStarTotal, $oneStarTotal);
+            }
+
+            // Validate that distribution adds up to total reviews
+            $distributionTotal = $fiveStarTotal + $fourStarTotal + $threeStarTotal + $twoStarTotal + $oneStarTotal;
+            if ($distributionTotal > 0 && $distributionTotal !== $totalReviews) {
+                echo "⚠️ Distribution total ($distributionTotal) doesn't match total reviews ($totalReviews). Using distribution total as source of truth.\n";
+                // Keep the distribution as-is since it came from the page
             }
 
             // Update database with complete metadata
