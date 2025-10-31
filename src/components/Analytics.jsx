@@ -14,6 +14,7 @@ const Analytics = () => {
   const [showCustomDate, setShowCustomDate] = useState(false);
   const [liveScrapingLoading, setLiveScrapingLoading] = useState(false);
   const [liveScrapingMessage, setLiveScrapingMessage] = useState(null);
+  const [messageExiting, setMessageExiting] = useState(false);
 
   // Use global cache from context
   const { getCachedData, setCachedData } = useCache();
@@ -169,12 +170,17 @@ const Analytics = () => {
         // Clear cache for this app to force fresh data on next load
         // (Don't cache live scrape results to ensure freshness)
 
-        setLiveScrapingMessage('✅ Live scraping completed and new review added.');
+        setLiveScrapingMessage('✅ Live scraping completed');
+        setMessageExiting(false);
 
-        // Auto-clear message after 5 seconds
+        // Auto-clear message after 3 seconds
         setTimeout(() => {
-          setLiveScrapingMessage(null);
-        }, 5000);
+          setMessageExiting(true);
+          setTimeout(() => {
+            setLiveScrapingMessage(null);
+            setMessageExiting(false);
+          }, 300);
+        }, 3000);
 
       } else {
         const errorMsg = data.error || 'Failed to scrape live data';
@@ -366,7 +372,7 @@ const Analytics = () => {
             <>
               {/* Live Scraping Message */}
               {liveScrapingMessage && (
-                <div className={`live-scraping-message ${liveScrapingMessage.includes('✅') ? 'success' : 'error'}`}>
+                <div className={`live-scraping-message ${liveScrapingMessage.includes('✅') ? 'success' : 'error'} ${messageExiting ? 'fade-out' : ''}`}>
                   <div className="message-content">
                     {liveScrapingMessage}
                   </div>
