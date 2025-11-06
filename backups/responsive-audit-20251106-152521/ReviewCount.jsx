@@ -243,13 +243,11 @@ const ReviewCount = () => {
             border-radius: 12px;
             padding: 4px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            flex-wrap: wrap;
-            gap: 4px;
+            // margin-bottom: 20px;
           }
 
           .time-filter-tab {
             flex: 1;
-            min-width: 120px;
             padding: 12px 0;
             border: none;
             border-radius: 8px;
@@ -271,27 +269,6 @@ const ReviewCount = () => {
           .time-filter-tab:hover:not(.active) {
             background: rgba(16, 185, 129, 0.1);
             color: #10B981;
-          }
-
-          @media (max-width: 768px) {
-            .time-filter-tabs {
-              width: 100%;
-              padding: 4px;
-            }
-
-            .time-filter-tab {
-              min-width: 100px;
-              padding: 10px 0;
-              font-size: 0.85rem;
-            }
-          }
-
-          @media (max-width: 480px) {
-            .time-filter-tab {
-              min-width: 80px;
-              padding: 8px 0;
-              font-size: 0.75rem;
-            }
           }
         `}
       </style>
@@ -323,110 +300,6 @@ const ReviewCount = () => {
           .stats-grid > div:nth-child(4) { animation-delay: 0.4s; }
           .stats-grid > div:nth-child(5) { animation-delay: 0.5s; }
           .stats-grid > div:nth-child(6) { animation-delay: 0.6s; }
-
-          @media (max-width: 768px) {
-            .review-count-page {
-              padding: 12px !important;
-            }
-
-            .agent-stats-section h3 {
-              font-size: 1.1rem !important;
-            }
-
-            .stats-grid {
-              grid-template-columns: repeat(2, 1fr) !important;
-              gap: 12px !important;
-            }
-
-            .stat-card {
-              padding: 12px !important;
-            }
-
-            .stat-value {
-              font-size: 1.8rem !important;
-            }
-
-            .stat-label {
-              font-size: 0.85rem !important;
-            }
-
-            .country-stats-section {
-              padding: 15px !important;
-            }
-
-            .country-stats-section h3 {
-              font-size: 1.1rem !important;
-            }
-
-            .country-list {
-              gap: 10px !important;
-            }
-
-            .country-item {
-              padding: 10px !important;
-              font-size: 0.9rem !important;
-            }
-
-            .country-name {
-              font-size: 0.9rem !important;
-            }
-
-            .country-count {
-              font-size: 1.2rem !important;
-            }
-          }
-
-          @media (max-width: 480px) {
-            .review-count-page {
-              padding: 8px !important;
-            }
-
-            .agent-stats-section {
-              padding: 12px !important;
-            }
-
-            .agent-stats-section h3 {
-              font-size: 1rem !important;
-            }
-
-            .stats-grid {
-              grid-template-columns: 1fr !important;
-              gap: 10px !important;
-            }
-
-            .stat-card {
-              padding: 10px !important;
-            }
-
-            .stat-value {
-              font-size: 1.5rem !important;
-            }
-
-            .stat-label {
-              font-size: 0.8rem !important;
-            }
-
-            .country-stats-section {
-              padding: 12px !important;
-            }
-
-            .country-stats-section h3 {
-              font-size: 1rem !important;
-            }
-
-            .country-item {
-              padding: 8px !important;
-              font-size: 0.85rem !important;
-            }
-
-            .country-name {
-              font-size: 0.85rem !important;
-            }
-
-            .country-count {
-              font-size: 1.1rem !important;
-            }
-          }
         `}
       </style>
       {/* <div className="page-header" style={{
@@ -469,99 +342,6 @@ const ReviewCount = () => {
           gap: '30px',
           // height: 'calc(100vh - 200px)'
         }}>
-          <style>
-            {`
-              @media (max-width: 1024px) {
-                .two-section-layout {
-                  grid-template-columns: 250px 1fr !important;
-                  gap: 20px !important;
-                }
-              }
-
-              @media (max-width: 768px) {
-                .two-section-layout {
-                  grid-template-columns: 1fr !important;
-                  gap: 20px !important;
-                }
-
-                .app-selection-section {
-                  order: 2 !important;
-                }
-
-                .agent-stats-section {
-                  order: 1 !important;
-                }
-
-                .app-list {
-                  display: grid !important;
-                  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important;
-                  gap: 10px !important;
-                }
-
-                .custom-selection-button {
-                  padding: 8px 12px !important;
-                  font-size: 0.9rem !important;
-                }
-
-                .time-filter-tabs {
-                  width: 100% !important;
-                }
-
-                .time-filter-tab {
-                  min-width: 100px !important;
-                  padding: 10px 0 !important;
-                  font-size: 0.85rem !important;
-                }
-              }
-
-              @media (max-width: 480px) {
-                .two-section-layout {
-                  gap: 15px !important;
-                }
-
-                .app-selection-section {
-                  padding: 15px !important;
-                }
-
-                .agent-stats-section {
-                  padding: 15px !important;
-                }
-
-                .app-list {
-                  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)) !important;
-                  gap: 8px !important;
-                }
-
-                .custom-selection-button {
-                  padding: 6px 10px !important;
-                  font-size: 0.85rem !important;
-                }
-
-                .time-filter-tab {
-                  min-width: 80px !important;
-                  padding: 8px 0 !important;
-                  font-size: 0.75rem !important;
-                }
-
-                .stats-grid {
-                  grid-template-columns: 1fr !important;
-                  gap: 12px !important;
-                }
-
-                .stat-card {
-                  padding: 12px !important;
-                }
-
-                .stat-value {
-                  font-size: 1.8rem !important;
-                }
-
-                .stat-label {
-                  font-size: 0.85rem !important;
-                }
-              }
-            `}
-          </style>
           {/* Left Section - App Selection */}
           <div className="app-selection-section" style={{
             background: 'white',

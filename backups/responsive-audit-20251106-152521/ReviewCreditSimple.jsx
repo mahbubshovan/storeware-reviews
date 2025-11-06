@@ -85,175 +85,18 @@ const ReviewCreditSimple = () => {
       padding: '20px',
       margin: '0 auto',
       borderRadius: '16px',
-      boxSizing: 'border-box',
     }}>
-      <style>
-        {`
-          @media (max-width: 768px) {
-            .agent-reviews-container {
-              padding: 12px !important;
-            }
-
-            .agent-reviews-header {
-              flex-direction: column !important;
-              gap: 15px !important;
-              text-align: center !important;
-            }
-
-            .agent-reviews-title h1 {
-              font-size: 24px !important;
-            }
-
-            .agent-reviews-title p {
-              font-size: 13px !important;
-            }
-
-            .agent-selector-container {
-              flex-direction: column !important;
-              width: 100% !important;
-              gap: 12px !important;
-            }
-
-            .agent-selector-label {
-              text-align: center !important;
-            }
-
-            .agent-selector-dropdown {
-              width: 100% !important;
-              min-width: auto !important;
-            }
-
-            .time-filter-tabs {
-              width: 100% !important;
-              flex-wrap: wrap !important;
-            }
-
-            .time-filter-button {
-              flex: 1 !important;
-              min-width: 120px !important;
-              padding: 10px 12px !important;
-              font-size: 13px !important;
-            }
-
-            .stats-grid {
-              grid-template-columns: 1fr !important;
-            }
-
-            .stat-card {
-              padding: 16px !important;
-            }
-
-            .stat-value {
-              font-size: 24px !important;
-            }
-
-            .stat-content h3 {
-              font-size: 12px !important;
-            }
-
-            .reviews-by-app-grid {
-              grid-template-columns: 1fr !important;
-            }
-
-            .app-review-card {
-              padding: 12px !important;
-            }
-
-            .app-review-card .app-name {
-              font-size: 14px !important;
-            }
-
-            .app-review-count {
-              font-size: 1.3rem !important;
-            }
-          }
-
-          @media (max-width: 480px) {
-            .agent-reviews-container {
-              padding: 8px !important;
-            }
-
-            .agent-reviews-header {
-              padding: 20px 12px !important;
-            }
-
-            .agent-reviews-title h1 {
-              font-size: 20px !important;
-            }
-
-            .agent-reviews-title p {
-              font-size: 12px !important;
-            }
-
-            .agent-selector-label {
-              font-size: 14px !important;
-            }
-
-            .agent-selector-dropdown {
-              padding: 10px 12px !important;
-              font-size: 13px !important;
-            }
-
-            .time-filter-button {
-              padding: 8px 10px !important;
-              font-size: 12px !important;
-            }
-
-            .stat-card {
-              padding: 12px !important;
-              gap: 10px !important;
-            }
-
-            .stat-icon {
-              width: 45px !important;
-              height: 45px !important;
-              font-size: 20px !important;
-            }
-
-            .stat-value {
-              font-size: 20px !important;
-            }
-
-            .stat-content h3 {
-              font-size: 11px !important;
-            }
-
-            .stat-label {
-              font-size: 10px !important;
-            }
-
-            .app-review-card {
-              padding: 10px !important;
-            }
-
-            .app-name {
-              font-size: 13px !important;
-            }
-
-            .app-review-count {
-              font-size: 1.2rem !important;
-            }
-          }
-        `}
-      </style>
       {/* Green Header */}
-      <div className="agent-reviews-header" style={{
+      <div style={{
         background: 'linear-gradient(135deg, #10B981 0%, #0d9488 100%)',
         color: 'white',
         padding: '40px 20px',
         textAlign: 'center',
         boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        borderRadius: '12px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: '20px',
-        flexWrap: 'wrap'
+        borderRadius: '12px'
       }}>
-        <div className="agent-reviews-title" style={{ flex: 1, minWidth: '200px' }}>
-          <h1 style={{ margin: '0 0 10px 0', fontSize: '2.5rem' }}>👥 Agent Reviews Dashboard</h1>
-          <p style={{ margin: '0', fontSize: '1.1rem', opacity: 0.95 }}>Track individual agent performance across all apps</p>
-        </div>
+        <h1 style={{ margin: '0 0 10px 0', fontSize: '2.5rem' }}>👥 Agent Reviews Dashboard</h1>
+        <p style={{ margin: '0', fontSize: '1.1rem', opacity: 0.95 }}>Track individual agent performance across all apps</p>
       </div>
 
       {/* Main Content */}
@@ -274,9 +117,9 @@ const ReviewCreditSimple = () => {
         )}
 
         {/* Agent Selector and Time Filter */}
-        <div className="agent-selector-container" style={{ marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+        <div style={{ marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
           {/* Agent Dropdown */}
-          <div className="agent-selector-label" style={{
+          <div style={{
             display: 'flex',
             alignItems: 'center',
             gap: '10px',
@@ -290,7 +133,6 @@ const ReviewCreditSimple = () => {
               👥 Select Agent:
             </label>
             <select
-              className="agent-selector-dropdown"
               value={selectedAgent || ''}
               onChange={(e) => {
                 const agentName = e.target.value;
@@ -323,9 +165,8 @@ const ReviewCreditSimple = () => {
           </div>
 
           {/* Time Filter Tabs */}
-          <div className="time-filter-tabs" style={{ display: 'inline-flex', background: '#e5e7eb', borderRadius: '10px', padding: '5px' }}>
+          <div style={{ display: 'inline-flex', background: '#e5e7eb', borderRadius: '10px', padding: '5px' }}>
             <button
-              className="time-filter-button"
               onClick={() => {
                 console.log('Filter changed to: last_30_days');
                 setTimeFilter('last_30_days');
@@ -344,7 +185,6 @@ const ReviewCreditSimple = () => {
               📊 Last 30 Days
             </button>
             <button
-              className="time-filter-button"
               onClick={() => {
                 console.log('Filter changed to: all_time');
                 setTimeFilter('all_time');
@@ -404,32 +244,32 @@ const ReviewCreditSimple = () => {
                 </span>
               </h2>
 
-              <div className="stats-grid" style={{
+              <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
                 gap: '20px',
                 marginBottom: '30px'
               }}>
-                <div className="stat-card" style={{
+                <div style={{
                   background: '#f0fdf4',
                   borderRadius: '12px',
                   padding: '20px',
                   border: '2px solid #10B981'
                 }}>
                   <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '8px' }}>Total Reviews</div>
-                  <div className="stat-value" style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#10B981' }}>
+                  <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#10B981' }}>
                     {selectedAgentDetails.total_reviews}
                   </div>
                 </div>
 
-                <div className="stat-card" style={{
+                <div style={{
                   background: '#ede9fe',
                   borderRadius: '12px',
                   padding: '20px',
                   border: '2px solid #a78bfa'
                 }}>
                   <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '8px' }}>Apps Covered</div>
-                  <div className="stat-value" style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#a78bfa' }}>
+                  <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#a78bfa' }}>
                     {selectedAgentDetails.by_app.length}
                   </div>
                 </div>
@@ -442,22 +282,22 @@ const ReviewCreditSimple = () => {
                 padding: '20px'
               }}>
                 <h3 style={{ margin: '0 0 15px 0', color: '#333' }}>Reviews by App</h3>
-                <div className="reviews-by-app-grid" style={{
+                <div style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
                   gap: '15px'
                 }}>
                   {selectedAgentDetails.by_app.map((app, index) => (
-                    <div key={index} className="app-review-card" style={{
+                    <div key={index} style={{
                       background: 'white',
                       borderRadius: '8px',
                       padding: '15px',
                       border: '1px solid #e5e7eb'
                     }}>
-                      <div className="app-name" style={{ fontWeight: 'bold', marginBottom: '8px', color: '#333' }}>
+                      <div style={{ fontWeight: 'bold', marginBottom: '8px', color: '#333' }}>
                         {app.app_name}
                       </div>
-                      <div className="app-review-count" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10B981', marginBottom: '8px' }}>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10B981', marginBottom: '8px' }}>
                         {app.review_count} {app.review_count === 1 ? 'review' : 'reviews'}
                       </div>
                     </div>
