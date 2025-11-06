@@ -7,6 +7,19 @@ export default defineConfig({
     plugins: [
         react(),
         {
+            name: 'serve-dashboard',
+            configureServer(server) {
+                return () => {
+                    server.middlewares.use((req, res, next) => {
+                        if (req.url === '/' || req.url === '/index.html') {
+                            req.url = '/dashboard.html'
+                        }
+                        next()
+                    })
+                }
+            }
+        },
+        {
             name: 'rename-index',
             enforce: 'post',
             generateBundle(options, bundle) {

@@ -4,7 +4,7 @@ import { useCache } from '../context/CacheContext';
 
 const AccessTabbed = () => {
   // Use global cache from context
-  const { getCachedData, setCachedData } = useCache();
+  const { getCachedData, setCachedData, clearAppCache } = useCache();
 
   // App configuration
   const apps = [
@@ -146,23 +146,14 @@ const AccessTabbed = () => {
   };
 
   const handlePageChange = (newPage) => {
-    // Add fade-out effect
-    const reviewsList = document.querySelector('.reviews-list');
-    if (reviewsList) {
-      reviewsList.style.opacity = '0';
-      reviewsList.style.transform = 'translateY(10px)';
-    }
-
     // Update the page for current tab
     setTabPages(prev => ({
       ...prev,
       [activeTab]: newPage
     }));
 
-    // Fetch new data with slight delay for smooth transition
-    setTimeout(() => {
-      fetchTabReviews(activeTab, newPage);
-    }, 150);
+    // Fetch new data immediately
+    fetchTabReviews(activeTab, newPage);
   };
 
   const handleEditClick = (review) => {
@@ -185,19 +176,36 @@ const AccessTabbed = () => {
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
+        // Find the review being updated to check if it was previously unassigned
+        const reviewBeingUpdated = reviews.find(r => r.id === reviewId);
+        const wasUnassigned = !reviewBeingUpdated?.earned_by;
+
         // Update the review in the current list
-        setReviews(prevReviews => 
-          prevReviews.map(review => 
-            review.id === reviewId 
+        setReviews(prevReviews =>
+          prevReviews.map(review =>
+            review.id === reviewId
               ? { ...review, earned_by: editValue.trim() }
               : review
           )
         );
+
+        // Update statistics immediately
+        if (statistics && wasUnassigned && editValue.trim()) {
+          setStatistics(prevStats => ({
+            ...prevStats,
+            assigned_reviews: (prevStats.assigned_reviews || 0) + 1,
+            unassigned_reviews: Math.max(0, (prevStats.unassigned_reviews || 0) - 1)
+          }));
+        }
+
+        // Clear cache for the current app to ensure fresh data on next load
+        clearAppCache(activeTab);
+
         setEditingReview(null);
         setEditValue('');
-        
+
         // Restore scroll position
         setTimeout(() => {
           window.scrollTo(0, scrollPosition);

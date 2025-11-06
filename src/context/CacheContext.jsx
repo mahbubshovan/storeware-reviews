@@ -63,11 +63,11 @@ export const CacheProvider = ({ children }) => {
    * Clear cache for a specific app
    */
   const clearAppCache = useCallback((appName) => {
-    const keysToDelete = Object.keys(cacheRef.current).filter(key => 
-      key.startsWith(appName)
+    const keysToDelete = Object.keys(cacheRef.current).filter(key =>
+      key.includes(appName)
     );
     keysToDelete.forEach(key => delete cacheRef.current[key]);
-    console.log(`🗑️ Cleared cache for app: ${appName}`);
+    console.log(`🗑️ Cleared cache for app: ${appName}, deleted keys:`, keysToDelete);
   }, []);
 
   /**

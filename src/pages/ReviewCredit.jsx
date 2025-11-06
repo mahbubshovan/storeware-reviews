@@ -2,288 +2,323 @@ import { useState, useEffect } from 'react';
 
 const ReviewCredit = () => {
   const [timeFilter, setTimeFilter] = useState('last_30_days');
-  const [agentStats, setAgentStats] = useState([]);
+  const [agents, setAgents] = useState([]);
+  const [selectedAgent, setSelectedAgent] = useState(null);
+  const [selectedAgentDetails, setSelectedAgentDetails] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [apps, setApps] = useState([]);
-  const [selectedApp, setSelectedApp] = useState('all');
 
-  // Fetch available apps
-  const fetchApps = async () => {
-    try {
-      const response = await fetch('/backend/api/apps.php');
-      if (!response.ok) throw new Error('Failed to fetch apps');
-      const data = await response.json();
-      setApps(data);
-    } catch (err) {
-      console.error('Error fetching apps:', err);
-      setError('Failed to load apps');
-    }
-  };
-
-  // Fetch agent statistics
-  const fetchAgentStats = async () => {
-    if (selectedApp === 'all') {
-      setAgentStats([]);
-      return;
-    }
-
+  // Fetch all agents
+  const fetchAgents = async () => {
+    console.log('Fetching all agents with filter:', timeFilter);
     setLoading(true);
     setError(null);
     try {
       const cacheBust = `_t=${Date.now()}&_cache_bust=${Math.random()}`;
-      const response = await fetch(`/backend/api/agent-stats.php?app_name=${encodeURIComponent(selectedApp)}&filter=${timeFilter}&${cacheBust}`);
-      if (!response.ok) throw new Error('Failed to fetch agent stats');
+      const response = await fetch(`/backend/api/agent-review-stats.php?filter=${timeFilter}&${cacheBust}`);
+      if (!response.ok) throw new Error('Failed to fetch agents');
       const data = await response.json();
+      console.log('Agents loaded:', data);
 
-      if (data.message === 'no_assignments') {
-        setAgentStats([]);
-        setError(`No agent assignments found for ${selectedApp}. You can assign reviews in the Access Review page.`);
+      if (data.message === 'no_agents') {
+        setAgents([]);
+        setError('No agents have been assigned reviews yet. You can assign reviews in the Access Review page.');
       } else {
-        setAgentStats(data);
+        setAgents(data);
       }
     } catch (err) {
-      console.error('Error fetching agent stats:', err);
+      console.error('Error fetching agents:', err);
       setError('Failed to load agent statistics');
-      setAgentStats([]);
+      setAgents([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Load apps on component mount
+  // Fetch details for a specific agent
+  const fetchAgentDetails = async (agentName) => {
+    console.log('Fetching details for agent:', agentName);
+    setLoading(true);
+    try {
+      const cacheBust = `_t=${Date.now()}&_cache_bust=${Math.random()}`;
+      const response = await fetch(`/backend/api/agent-review-stats.php?agent_name=${encodeURIComponent(agentName)}&filter=${timeFilter}&${cacheBust}`);
+      if (!response.ok) throw new Error('Failed to fetch agent details');
+      const data = await response.json();
+      console.log('Agent details loaded:', data);
+      setSelectedAgentDetails(data);
+    } catch (err) {
+      console.error('Error fetching agent details:', err);
+      setError('Failed to load agent details');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load agents on component mount
   useEffect(() => {
-    fetchApps();
+    console.log('Component mounted, fetching agents...');
+    fetchAgents();
   }, []);
 
-  // Fetch agent stats when app or time filter changes
+  // Fetch agents when time filter changes
   useEffect(() => {
-    if (selectedApp !== 'all') {
-      fetchAgentStats();
-    } else {
-      setAgentStats([]);
-      setError(null);
-    }
-  }, [selectedApp, timeFilter]);
+    console.log('Time filter changed:', timeFilter);
+    fetchAgents();
+    setSelectedAgent(null);
+    setSelectedAgentDetails(null);
+  }, [timeFilter]);
+
+  // Handle agent selection
+  const handleAgentSelect = (agentName) => {
+    console.log('Agent selected:', agentName);
+    setSelectedAgent(agentName);
+    fetchAgentDetails(agentName);
+  };
 
   return (
     <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #10B981 0%, #0d9488 100%)',
-      padding: '20px'
+      maxWidth: '1400px',
+      width: '100%',
+      background: '#f8f9fa',
+      padding: '20px',
+      margin: '0 auto',
+      borderRadius: '16px',
     }}>
-      <div style={{ textAlign: 'center', color: 'white', padding: '20px' }}>
-        <h1>🎯 Agent Reviews Dashboard</h1>
-        <p>Track agent performance with Last 30 Days and All Time views</p>
+      {/* Green Header */}
+      <div style={{
+        background: 'linear-gradient(135deg, #10B981 0%, #0d9488 100%)',
+        color: 'white',
+        padding: '40px 20px',
+        textAlign: 'center',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        borderRadius: '12px'
+      }}>
+        <h1 style={{ margin: '0 0 10px 0', fontSize: '2.5rem' }}>👥 Agent Reviews Dashboard</h1>
+        <p style={{ margin: '0', fontSize: '1.1rem', opacity: 0.95 }}>Track individual agent performance across all apps</p>
+      </div>
 
-        {/* Time Filter Tabs */}
-        {/* App Selector */}
-        {/* <div style={{ margin: '20px 0' }}> */}
-        <div style={{  }}>
+      {/* Main Content */}
+      <div style={{ padding: '40px 0px', maxWidth: '1200px', margin: '0 auto' }}>
+        {/* Error Message */}
+        {error && (
           <div style={{
-            background: 'rgba(255,255,255,0.1)',
-            borderRadius: '10px',
-            padding: '20px',
-            marginBottom: '20px'
+            background: '#fee',
+            padding: '16px',
+            margin: '0 0 30px 0',
+            borderRadius: '8px',
+            fontSize: '14px',
+            color: '#c33',
+            border: '1px solid #fcc'
+          }}>
+            <p style={{ margin: '0' }}>{error}</p>
+          </div>
+        )}
+
+        {/* Agent Selector and Time Filter */}
+        <div style={{ marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+          {/* Agent Dropdown */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: '5px 0'
           }}>
             <label style={{
-              display: 'block',
-              marginBottom: '10px',
-              color: 'white',
+              color: '#333',
               fontWeight: 'bold',
               fontSize: '1.1rem'
             }}>
-              📱 Select App:
+              👥 Select Agent:
             </label>
             <select
-              value={selectedApp}
-              onChange={(e) => setSelectedApp(e.target.value)}
+              value={selectedAgent || ''}
+              onChange={(e) => {
+                const agentName = e.target.value;
+                console.log('Agent selected:', agentName);
+                if (agentName) {
+                  handleAgentSelect(agentName);
+                } else {
+                  setSelectedAgent(null);
+                  setSelectedAgentDetails(null);
+                }
+              }}
               style={{
                 padding: '12px 16px',
                 borderRadius: '8px',
-                border: 'none',
+                border: '2px solid #e5e7eb',
                 fontSize: '1rem',
-                minWidth: '200px',
+                minWidth: '250px',
                 background: 'white',
-                color: '#333'
+                color: '#333',
+                cursor: 'pointer'
               }}
             >
-              <option value="all">Choose an app to analyze</option>
-              {apps.map(app => (
-                <option key={app} value={app}>
-                  {app}
+              <option value="">Choose an agent to analyze</option>
+              {agents.map((agent) => (
+                <option key={agent.agent_name} value={agent.agent_name}>
+                  {agent.agent_name} ({agent.review_count} reviews)
                 </option>
               ))}
             </select>
           </div>
+
+          {/* Time Filter Tabs */}
+          <div style={{ display: 'inline-flex', background: '#e5e7eb', borderRadius: '10px', padding: '5px' }}>
+            <button
+              onClick={() => {
+                console.log('Filter changed to: last_30_days');
+                setTimeFilter('last_30_days');
+              }}
+              style={{
+                padding: '12px 24px',
+                background: timeFilter === 'last_30_days' ? '#10B981' : 'transparent',
+                color: timeFilter === 'last_30_days' ? 'white' : '#666',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                transition: 'all 0.3s ease'
+              }}
+            >
+              📊 Last 30 Days
+            </button>
+            <button
+              onClick={() => {
+                console.log('Filter changed to: all_time');
+                setTimeFilter('all_time');
+              }}
+              style={{
+                padding: '12px 24px',
+                background: timeFilter === 'all_time' ? '#10B981' : 'transparent',
+                color: timeFilter === 'all_time' ? 'white' : '#666',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                transition: 'all 0.3s ease'
+              }}
+            >
+              🏆 All Time
+            </button>
+          </div>
         </div>
 
-        {/* Time Filter Tabs */}
-        {selectedApp !== 'all' && (
-          <div style={{ margin: '30px 0' }}>
-            <div style={{ display: 'inline-flex', background: 'rgba(255,255,255,0.2)', borderRadius: '10px', padding: '5px' }}>
-              <button
-                onClick={() => setTimeFilter('last_30_days')}
-                style={{
-                  padding: '12px 24px',
-                  background: timeFilter === 'last_30_days' ? 'white' : 'transparent',
-                  color: timeFilter === 'last_30_days' ? '#10B981' : 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontWeight: 'bold'
-                }}
-              >
-                📊 Last 30 Days
-              </button>
-              <button
-                onClick={() => setTimeFilter('all_time')}
-                style={{
-                  padding: '12px 24px',
-                  background: timeFilter === 'all_time' ? 'white' : 'transparent',
-                  color: timeFilter === 'all_time' ? '#10B981' : 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontWeight: 'bold'
-                }}
-              >
-                🏆 All Time
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Content based on selected app and filter */}
+        {/* Content */}
         <div style={{
-          background: 'rgba(255,255,255,0.1)',
+          background: 'white',
           borderRadius: '15px',
-          padding: '30px',
-          margin: '20px auto',
-          maxWidth: '1000px',
+          padding: '40px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
           minHeight: '400px'
         }}>
-          {selectedApp === 'all' ? (
-            <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-              <div style={{ fontSize: '4rem', marginBottom: '20px' }}>📱</div>
-              <h2 style={{ marginBottom: '15px', color: 'white' }}>Choose an App to Analyze</h2>
-              <p style={{ fontSize: '18px', opacity: 0.8, color: 'white' }}>
-                Select an app from the dropdown above to view agent review statistics
-              </p>
-            </div>
-          ) : loading ? (
+          {loading ? (
             <div style={{ textAlign: 'center', padding: '60px 20px' }}>
               <div style={{ fontSize: '3rem', marginBottom: '20px' }}>⏳</div>
-              <h2 style={{ color: 'white' }}>Loading Agent Statistics...</h2>
+              <h2 style={{ color: '#333' }}>Loading Agent Statistics...</h2>
             </div>
-          ) : error ? (
+          ) : error && agents.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '60px 20px' }}>
               <div style={{ fontSize: '3rem', marginBottom: '20px' }}>⚠️</div>
-              <h2 style={{ color: 'white', marginBottom: '15px' }}>No Data Available</h2>
-              <p style={{ fontSize: '16px', opacity: 0.9, color: 'white' }}>{error}</p>
+              <h2 style={{ color: '#333', marginBottom: '15px' }}>No Data Available</h2>
+              <p style={{ fontSize: '16px', color: '#666' }}>{error}</p>
             </div>
-          ) : (
+          ) : !selectedAgent ? (
+            // Show default message when no agent is selected
+            <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+              <div style={{ fontSize: '4rem', marginBottom: '20px' }}>👥</div>
+              <h2 style={{ marginBottom: '15px', color: '#333' }}>Choose an Agent to Analyze</h2>
+              <p style={{ fontSize: '18px', color: '#666' }}>
+                Select an agent from the dropdown above to view their review statistics across all apps
+              </p>
+            </div>
+          ) : selectedAgent && selectedAgentDetails ? (
+            // Show selected agent details
             <>
-              <h2 style={{ marginBottom: '30px', color: 'white', textAlign: 'center' }}>
-                {timeFilter === 'last_30_days' ? '📊 Last 30 Days Statistics' : '🏆 All Time Statistics'}
+              <h2 style={{ margin: '0 0 30px 0', color: '#333', textAlign: 'center' }}>
+                📋 {selectedAgentDetails.agent_name}
                 <br />
-                <span style={{ fontSize: '1.2rem', fontWeight: 'normal', opacity: 0.8 }}>
-                  for {selectedApp}
+                <span style={{ fontSize: '1.1rem', fontWeight: 'normal', color: '#666' }}>
+                  {timeFilter === 'last_30_days' ? 'Last 30 Days' : 'All Time'} Statistics
                 </span>
               </h2>
 
-              {agentStats.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-                  <div style={{ fontSize: '3rem', marginBottom: '20px' }}>📋</div>
-                  <h3 style={{ color: 'white', marginBottom: '15px' }}>No Agent Assignments Found</h3>
-                  <p style={{ fontSize: '16px', opacity: 0.9, color: 'white' }}>
-                    No reviews have been assigned to agents for {selectedApp} in the selected time period.
-                    <br />
-                    Visit the Access Reviews page to assign reviews to agents.
-                  </p>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '20px',
+                marginBottom: '30px'
+              }}>
+                <div style={{
+                  background: '#f0fdf4',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  border: '2px solid #10B981'
+                }}>
+                  <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '8px' }}>Total Reviews</div>
+                  <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#10B981' }}>
+                    {selectedAgentDetails.total_reviews}
+                  </div>
                 </div>
-              ) : (
+
+                <div style={{
+                  background: '#fef3c7',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  border: '2px solid #f59e0b'
+                }}>
+                  <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '8px' }}>Average Rating</div>
+                  <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#f59e0b' }}>
+                    {selectedAgentDetails.average_rating}⭐
+                  </div>
+                </div>
+
+                <div style={{
+                  background: '#ede9fe',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  border: '2px solid #a78bfa'
+                }}>
+                  <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '8px' }}>Apps Covered</div>
+                  <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#a78bfa' }}>
+                    {selectedAgentDetails.by_app.length}
+                  </div>
+                </div>
+              </div>
+
+              {/* Reviews by App */}
+              <div style={{
+                background: '#f8f9fa',
+                borderRadius: '12px',
+                padding: '20px'
+              }}>
+                <h3 style={{ margin: '0 0 15px 0', color: '#333' }}>Reviews by App</h3>
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                  gap: '20px',
-                  marginTop: '30px'
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                  gap: '15px'
                 }}>
-                  {agentStats
-                    .sort((a, b) => b.review_count - a.review_count)
-                    .map((agent, index) => (
-                      <div
-                        key={index}
-                        style={{
-                          background: 'rgba(255,255,255,0.95)',
-                          borderRadius: '12px',
-                          padding: '25px',
-                          color: '#333',
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                          border: index === 0 && agent.review_count > 0 ? '3px solid #10B981' : 'none',
-                          position: 'relative'
-                        }}
-                      >
-                        {index === 0 && agent.review_count > 0 && (
-                          <div style={{
-                            position: 'absolute',
-                            top: '-10px',
-                            right: '15px',
-                            background: '#10B981',
-                            color: 'white',
-                            padding: '5px 12px',
-                            borderRadius: '15px',
-                            fontSize: '0.8rem',
-                            fontWeight: 'bold'
-                          }}>
-                            🏆 Top Performer
-                          </div>
-                        )}
-
-                        <div style={{ textAlign: 'center' }}>
-                          <div style={{
-                            fontSize: '2.5rem',
-                            fontWeight: 'bold',
-                            color: '#10B981',
-                            marginBottom: '10px'
-                          }}>
-                            {agent.review_count}
-                          </div>
-                          <div style={{
-                            fontSize: '1.2rem',
-                            fontWeight: 'bold',
-                            marginBottom: '8px',
-                            color: '#333'
-                          }}>
-                            {agent.agent_name || agent.earned_by || 'Unassigned'}
-                          </div>
-                          <div style={{
-                            fontSize: '0.9rem',
-                            color: '#666',
-                            marginBottom: '15px'
-                          }}>
-                            Reviews Handled
-                          </div>
-
-                          {agent.review_count > 0 && (
-                            <div style={{
-                              background: '#f8f9fa',
-                              borderRadius: '8px',
-                              padding: '12px',
-                              fontSize: '0.85rem',
-                              color: '#666'
-                            }}>
-                              <div>📅 Period: {timeFilter === 'last_30_days' ? 'Last 30 Days' : 'All Time'}</div>
-                              <div>📱 App: {selectedApp}</div>
-                            </div>
-                          )}
-                        </div>
+                  {selectedAgentDetails.by_app.map((app, index) => (
+                    <div key={index} style={{
+                      background: 'white',
+                      borderRadius: '8px',
+                      padding: '15px',
+                      border: '1px solid #e5e7eb'
+                    }}>
+                      <div style={{ fontWeight: 'bold', marginBottom: '8px', color: '#333' }}>
+                        {app.app_name}
                       </div>
-                    ))}
+                      <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10B981', marginBottom: '8px' }}>
+                        {app.review_count} reviews
+                      </div>
+                      <div style={{ fontSize: '0.9rem', color: '#666' }}>
+                        Avg Rating: {app.average_rating}⭐
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              )}
+              </div>
             </>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

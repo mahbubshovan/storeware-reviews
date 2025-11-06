@@ -64,8 +64,10 @@ const ReviewCreditSimple = () => {
   useEffect(() => {
     console.log('Time filter changed:', timeFilter);
     fetchAgents();
-    setSelectedAgent(null);
-    setSelectedAgentDetails(null);
+    // If an agent is already selected, re-fetch their details with the new time filter
+    if (selectedAgent) {
+      fetchAgentDetails(selectedAgent);
+    }
   }, [timeFilter]);
 
   // Handle agent selection
@@ -156,7 +158,7 @@ const ReviewCreditSimple = () => {
               <option value="">Choose an agent to analyze</option>
               {agents.map((agent) => (
                 <option key={agent.agent_name} value={agent.agent_name}>
-                  {agent.agent_name} ({agent.review_count} reviews)
+                  {agent.agent_name}
                 </option>
               ))}
             </select>
@@ -261,18 +263,6 @@ const ReviewCreditSimple = () => {
                 </div>
 
                 <div style={{
-                  background: '#fef3c7',
-                  borderRadius: '12px',
-                  padding: '20px',
-                  border: '2px solid #f59e0b'
-                }}>
-                  <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '8px' }}>Average Rating</div>
-                  <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#f59e0b' }}>
-                    {selectedAgentDetails.average_rating}⭐
-                  </div>
-                </div>
-
-                <div style={{
                   background: '#ede9fe',
                   borderRadius: '12px',
                   padding: '20px',
@@ -308,10 +298,7 @@ const ReviewCreditSimple = () => {
                         {app.app_name}
                       </div>
                       <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10B981', marginBottom: '8px' }}>
-                        {app.review_count} reviews
-                      </div>
-                      <div style={{ fontSize: '0.9rem', color: '#666' }}>
-                        Avg Rating: {app.average_rating}⭐
+                        {app.review_count} {app.review_count === 1 ? 'review' : 'reviews'}
                       </div>
                     </div>
                   ))}

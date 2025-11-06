@@ -10,7 +10,8 @@ function App() {
   const [currentView, setCurrentView] = useState('analytics'); // 'analytics', 'access-tabbed', 'appwise-reviews', or 'agent-reviews'
 
   console.log('App rendering with currentView:', currentView);
-  console.log('Testing Agent Review update...');
+  console.log('ReviewCredit component:', ReviewCredit);
+  console.log('ReviewCredit component name:', ReviewCredit.name);
 
   // Update document title based on current view
   useEffect(() => {
