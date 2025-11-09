@@ -111,11 +111,13 @@ const ReviewCreditSimple = () => {
             .agent-selector-container {
               flex-direction: column !important;
               width: 100% !important;
-              gap: 12px !important;
+              gap: 15px !important;
+              justify-content: center !important;
             }
 
             .agent-selector-label {
-              text-align: center !important;
+              width: 100% !important;
+              justify-content: center !important;
             }
 
             .agent-selector-dropdown {
@@ -245,7 +247,7 @@ const ReviewCreditSimple = () => {
         boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
         borderRadius: '12px',
         display: 'flex',
-        justifyContent: 'space-between',
+        justifyContent: 'center',
         alignItems: 'center',
         gap: '20px',
         flexWrap: 'wrap'
@@ -274,18 +276,19 @@ const ReviewCreditSimple = () => {
         )}
 
         {/* Agent Selector and Time Filter */}
-        <div className="agent-selector-container" style={{ marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+        <div className="agent-selector-container" style={{ marginBottom: '30px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '30px', flexWrap: 'wrap' }}>
           {/* Agent Dropdown */}
           <div className="agent-selector-label" style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '10px',
+            gap: '12px',
             padding: '5px 0'
           }}>
             <label style={{
               color: '#333',
               fontWeight: 'bold',
-              fontSize: '1.1rem'
+              fontSize: '1rem',
+              whiteSpace: 'nowrap'
             }}>
               👥 Select Agent:
             </label>
@@ -303,11 +306,11 @@ const ReviewCreditSimple = () => {
                 }
               }}
               style={{
-                padding: '12px 16px',
+                padding: '10px 14px',
                 borderRadius: '8px',
                 border: '2px solid #e5e7eb',
-                fontSize: '1rem',
-                minWidth: '250px',
+                fontSize: '0.95rem',
+                minWidth: '200px',
                 background: 'white',
                 color: '#333',
                 cursor: 'pointer'
@@ -323,7 +326,7 @@ const ReviewCreditSimple = () => {
           </div>
 
           {/* Time Filter Tabs */}
-          <div className="time-filter-tabs" style={{ display: 'inline-flex', background: '#e5e7eb', borderRadius: '10px', padding: '5px' }}>
+          <div className="time-filter-tabs" style={{ display: 'inline-flex', background: '#e5e7eb', borderRadius: '10px', padding: '5px', gap: '5px' }}>
             <button
               className="time-filter-button"
               onClick={() => {
@@ -331,14 +334,16 @@ const ReviewCreditSimple = () => {
                 setTimeFilter('last_30_days');
               }}
               style={{
-                padding: '12px 24px',
+                padding: '10px 20px',
                 background: timeFilter === 'last_30_days' ? '#10B981' : 'transparent',
                 color: timeFilter === 'last_30_days' ? 'white' : '#666',
                 border: 'none',
                 borderRadius: '8px',
                 cursor: 'pointer',
                 fontWeight: 'bold',
-                transition: 'all 0.3s ease'
+                transition: 'all 0.3s ease',
+                fontSize: '0.95rem',
+                whiteSpace: 'nowrap'
               }}
             >
               📊 Last 30 Days
@@ -350,14 +355,16 @@ const ReviewCreditSimple = () => {
                 setTimeFilter('all_time');
               }}
               style={{
-                padding: '12px 24px',
+                padding: '10px 20px',
                 background: timeFilter === 'all_time' ? '#10B981' : 'transparent',
                 color: timeFilter === 'all_time' ? 'white' : '#666',
                 border: 'none',
                 borderRadius: '8px',
                 cursor: 'pointer',
                 fontWeight: 'bold',
-                transition: 'all 0.3s ease'
+                transition: 'all 0.3s ease',
+                fontSize: '0.95rem',
+                whiteSpace: 'nowrap'
               }}
             >
               🏆 All Time
@@ -406,31 +413,53 @@ const ReviewCreditSimple = () => {
 
               <div className="stats-grid" style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: '20px',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+                gap: '12px',
                 marginBottom: '30px'
               }}>
                 <div className="stat-card" style={{
-                  background: '#f0fdf4',
-                  borderRadius: '12px',
-                  padding: '20px',
-                  border: '2px solid #10B981'
+                  background: 'white',
+                  borderRadius: '8px',
+                  paddingTop: '12px',
+                  paddingRight: '12px',
+                  paddingBottom: '12px',
+                  paddingLeft: '6px',
+                  border: '1px solid #e5e7eb',
+                  borderLeft: '4px solid #10B981',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'flex-start',
+                  alignItems: 'flex-start',
+                  textAlign: 'left'
                 }}>
-                  <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '8px' }}>Total Reviews</div>
-                  <div className="stat-value" style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#10B981' }}>
-                    {selectedAgentDetails.total_reviews}
+                  <div style={{paddingLeft: '10px'}}>
+                    <div style={{ fontSize: '0.7rem', color: '#999', marginBottom: '8px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Reviews</div>
+                    <div className="stat-value" style={{ fontSize: '2rem', fontWeight: 'bold', color: '#333', lineHeight: '1' }}>
+                      {selectedAgentDetails.total_reviews}
+                    </div>
                   </div>
                 </div>
 
                 <div className="stat-card" style={{
-                  background: '#ede9fe',
-                  borderRadius: '12px',
-                  padding: '20px',
-                  border: '2px solid #a78bfa'
+                  background: 'white',
+                  borderRadius: '8px',
+                  paddingTop: '12px',
+                  paddingRight: '12px',
+                  paddingBottom: '12px',
+                  paddingLeft: '6px',
+                  border: '1px solid #e5e7eb',
+                  borderLeft: '4px solid #10B981',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'flex-start',
+                  alignItems: 'flex-start',
+                  textAlign: 'left'
                 }}>
-                  <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '8px' }}>Apps Covered</div>
-                  <div className="stat-value" style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#a78bfa' }}>
-                    {selectedAgentDetails.by_app.length}
+                  <div style={{paddingLeft: '10px'}}>
+                    <div style={{ fontSize: '0.7rem', color: '#999', marginBottom: '8px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Apps Covered</div>
+                    <div className="stat-value" style={{ fontSize: '2rem', fontWeight: 'bold', color: '#333', lineHeight: '1' }}>
+                      {selectedAgentDetails.by_app.length}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -451,14 +480,25 @@ const ReviewCreditSimple = () => {
                     <div key={index} className="app-review-card" style={{
                       background: 'white',
                       borderRadius: '8px',
-                      padding: '15px',
-                      border: '1px solid #e5e7eb'
+                      overflow: 'hidden',
+                      border: '1px solid #e5e7eb',
+                      padding: '10px'
                     }}>
-                      <div className="app-name" style={{ fontWeight: 'bold', marginBottom: '8px', color: '#333' }}>
+                      <div className="app-name" style={{
+                        background: '#d1fae5',
+                        padding: '10px 15px',
+                        fontWeight: 'bold',
+                        color: '#065f46',
+                        fontSize: '0.95rem',
+                        display: 'inline-block',
+                        width: 'auto'
+                      }}>
                         {app.app_name}
                       </div>
-                      <div className="app-review-count" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10B981', marginBottom: '8px' }}>
-                        {app.review_count} {app.review_count === 1 ? 'review' : 'reviews'}
+                      <div style={{ padding: '15px' }}>
+                        <div className="app-review-count" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10B981' }}>
+                          {app.review_count} {app.review_count === 1 ? 'review' : 'reviews'}
+                        </div>
                       </div>
                     </div>
                   ))}
