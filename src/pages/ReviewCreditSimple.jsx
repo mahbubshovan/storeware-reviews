@@ -7,6 +7,8 @@ const ReviewCreditSimple = () => {
   const [selectedAgentDetails, setSelectedAgentDetails] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [customDateRange, setCustomDateRange] = useState({ start: '', end: '' });
+  const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
 
   // Fetch all agents
   const fetchAgents = async () => {
@@ -15,7 +17,14 @@ const ReviewCreditSimple = () => {
     setError(null);
     try {
       const cacheBust = `_t=${Date.now()}&_cache_bust=${Math.random()}`;
-      const response = await fetch(`/backend/api/agent-review-stats.php?filter=${timeFilter}&${cacheBust}`);
+      let url = `/backend/api/agent-review-stats.php?filter=${timeFilter}&${cacheBust}`;
+
+      // Add custom date range if applicable
+      if (timeFilter === 'custom' && customDateRange.start && customDateRange.end) {
+        url += `&start_date=${customDateRange.start}&end_date=${customDateRange.end}`;
+      }
+
+      const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to fetch agents');
       const data = await response.json();
       console.log('Agents loaded:', data);
@@ -41,7 +50,14 @@ const ReviewCreditSimple = () => {
     setLoading(true);
     try {
       const cacheBust = `_t=${Date.now()}&_cache_bust=${Math.random()}`;
-      const response = await fetch(`/backend/api/agent-review-stats.php?agent_name=${encodeURIComponent(agentName)}&filter=${timeFilter}&${cacheBust}`);
+      let url = `/backend/api/agent-review-stats.php?agent_name=${encodeURIComponent(agentName)}&filter=${timeFilter}&${cacheBust}`;
+
+      // Add custom date range if applicable
+      if (timeFilter === 'custom' && customDateRange.start && customDateRange.end) {
+        url += `&start_date=${customDateRange.start}&end_date=${customDateRange.end}`;
+      }
+
+      const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to fetch agent details');
       const data = await response.json();
       console.log('Agent details loaded:', data);
@@ -54,21 +70,16 @@ const ReviewCreditSimple = () => {
     }
   };
 
-  // Load agents on component mount
+  // Load agents on component mount and when filters change
   useEffect(() => {
-    console.log('Component mounted, fetching agents...');
+    console.log('Fetching agents - Filter:', timeFilter, 'Custom Range:', customDateRange);
     fetchAgents();
-  }, []);
-
-  // Fetch agents when time filter changes
-  useEffect(() => {
-    console.log('Time filter changed:', timeFilter);
-    fetchAgents();
-    // If an agent is already selected, re-fetch their details with the new time filter
+    // If an agent is already selected, re-fetch their details with the new filter
     if (selectedAgent) {
       fetchAgentDetails(selectedAgent);
     }
-  }, [timeFilter]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeFilter, customDateRange.start, customDateRange.end]);
 
   // Handle agent selection
   const handleAgentSelect = (agentName) => {
@@ -332,6 +343,7 @@ const ReviewCreditSimple = () => {
               onClick={() => {
                 console.log('Filter changed to: last_30_days');
                 setTimeFilter('last_30_days');
+                setShowCustomDatePicker(false);
               }}
               style={{
                 padding: '10px 20px',
@@ -353,6 +365,7 @@ const ReviewCreditSimple = () => {
               onClick={() => {
                 console.log('Filter changed to: all_time');
                 setTimeFilter('all_time');
+                setShowCustomDatePicker(false);
               }}
               style={{
                 padding: '10px 20px',
@@ -369,8 +382,174 @@ const ReviewCreditSimple = () => {
             >
               🏆 All Time
             </button>
+            <button
+              className="time-filter-button"
+              onClick={() => {
+                console.log('Filter changed to: custom');
+                setShowCustomDatePicker(!showCustomDatePicker);
+                if (!showCustomDatePicker) {
+                  setTimeFilter('custom');
+                }
+              }}
+              style={{
+                padding: '10px 20px',
+                background: timeFilter === 'custom' ? '#10B981' : 'transparent',
+                color: timeFilter === 'custom' ? 'white' : '#666',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                transition: 'all 0.3s ease',
+                fontSize: '0.95rem',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              📅 Custom Range
+            </button>
           </div>
         </div>
+
+        {/* Custom Date Range Picker */}
+        {showCustomDatePicker && (
+          <div style={{
+            marginTop: '20px',
+            marginBottom: '20px',
+            padding: '25px',
+            background: 'white',
+            borderRadius: '12px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            maxWidth: '650px',
+            margin: '20px auto'
+          }}>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '20px'
+            }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'flex-start',
+                gap: '20px',
+                flexWrap: 'wrap'
+              }}>
+                <div style={{ flex: '0 1 auto', minWidth: '200px', maxWidth: '250px' }}>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '0.9rem',
+                    fontWeight: '600',
+                    color: '#333',
+                    marginBottom: '8px'
+                  }}>
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={customDateRange.start}
+                    onChange={(e) => setCustomDateRange({ ...customDateRange, start: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '8px',
+                      fontSize: '0.95rem',
+                      outline: 'none',
+                      transition: 'border-color 0.3s ease'
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = '#10B981'}
+                    onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                  />
+                </div>
+
+                <div style={{ flex: '0 1 auto', minWidth: '200px', maxWidth: '250px' }}>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '0.9rem',
+                    fontWeight: '600',
+                    color: '#333',
+                    marginBottom: '8px'
+                  }}>
+                    End Date
+                  </label>
+                  <input
+                    type="date"
+                    value={customDateRange.end}
+                    onChange={(e) => setCustomDateRange({ ...customDateRange, end: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '8px',
+                      fontSize: '0.95rem',
+                      outline: 'none',
+                      transition: 'border-color 0.3s ease'
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = '#10B981'}
+                    onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                  />
+                </div>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center'
+              }}>
+                <button
+                  onClick={() => {
+                    if (customDateRange.start && customDateRange.end) {
+                      setTimeFilter('custom');
+                      fetchAgents();
+                      if (selectedAgent) {
+                        fetchAgentDetails(selectedAgent);
+                      }
+                    } else {
+                      alert('Please select both start and end dates');
+                    }
+                  }}
+                  disabled={!customDateRange.start || !customDateRange.end}
+                  style={{
+                    padding: '12px 32px',
+                    background: customDateRange.start && customDateRange.end ? '#10B981' : '#d1d5db',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    cursor: customDateRange.start && customDateRange.end ? 'pointer' : 'not-allowed',
+                    transition: 'all 0.3s ease',
+                    whiteSpace: 'nowrap'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (customDateRange.start && customDateRange.end) {
+                      e.target.style.background = '#0d9488';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (customDateRange.start && customDateRange.end) {
+                      e.target.style.background = '#10B981';
+                    }
+                  }}
+                >
+                  Apply Filter
+                </button>
+              </div>
+            </div>
+
+            {customDateRange.start && customDateRange.end && (
+              <div style={{
+                fontSize: '0.85rem',
+                color: '#666',
+                textAlign: 'center',
+                padding: '12px',
+                marginTop: '15px',
+                background: '#f0fdf4',
+                borderRadius: '6px'
+              }}>
+                📊 Showing data from <strong>{customDateRange.start}</strong> to <strong>{customDateRange.end}</strong>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Content */}
         <div style={{
@@ -391,6 +570,32 @@ const ReviewCreditSimple = () => {
               <h2 style={{ color: '#333', marginBottom: '15px' }}>No Data Available</h2>
               <p style={{ fontSize: '16px', color: '#666' }}>{error}</p>
             </div>
+          ) : error && selectedAgent && !selectedAgentDetails ? (
+            // Show error when agent is selected but details failed to load
+            <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+              <div style={{ fontSize: '3rem', marginBottom: '20px' }}>❌</div>
+              <h2 style={{ color: '#333', marginBottom: '15px' }}>Failed to Load Agent Details</h2>
+              <p style={{ fontSize: '16px', color: '#666' }}>{error}</p>
+              <button
+                onClick={() => {
+                  setError(null);
+                  if (selectedAgent) fetchAgentDetails(selectedAgent);
+                }}
+                style={{
+                  marginTop: '20px',
+                  padding: '12px 24px',
+                  background: '#10B981',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                🔄 Retry
+              </button>
+            </div>
           ) : !selectedAgent ? (
             // Show default message when no agent is selected
             <div style={{ textAlign: 'center', padding: '60px 20px' }}>
@@ -407,7 +612,11 @@ const ReviewCreditSimple = () => {
                 📋 {selectedAgentDetails.agent_name}
                 <br />
                 <span style={{ fontSize: '1.1rem', fontWeight: 'normal', color: '#666' }}>
-                  {timeFilter === 'last_30_days' ? 'Last 30 Days' : 'All Time'} Statistics
+                  {timeFilter === 'last_30_days'
+                    ? 'Last 30 Days'
+                    : timeFilter === 'custom' && customDateRange.start && customDateRange.end
+                    ? `${customDateRange.start} to ${customDateRange.end}`
+                    : 'All Time'} Statistics
                 </span>
               </h2>
 

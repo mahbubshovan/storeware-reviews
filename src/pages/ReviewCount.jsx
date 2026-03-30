@@ -90,6 +90,8 @@ const ReviewCount = () => {
   const [error, setError] = useState(null);
   const [countryError, setCountryError] = useState(null);
   const [timeFilter, setTimeFilter] = useState('last_30_days'); // Default to last 30 days
+  const [customDateRange, setCustomDateRange] = useState({ start: '', end: '' });
+  const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
 
   // Fetch available apps on component mount
   useEffect(() => {
@@ -102,7 +104,8 @@ const ReviewCount = () => {
       fetchAgentStats(selectedApp);
       fetchCountryStats(selectedApp);
     }
-  }, [selectedApp, timeFilter]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedApp, timeFilter, customDateRange.start, customDateRange.end]);
 
   const fetchApps = async () => {
     try {
@@ -119,7 +122,7 @@ const ReviewCount = () => {
 
   const fetchAgentStats = async (appName) => {
     // Check global cache first
-    const cacheKey = `agent_stats_${appName}_${timeFilter}`;
+    const cacheKey = `agent_stats_${appName}_${timeFilter}_${customDateRange.start}_${customDateRange.end}`;
     const cachedData = getCachedData(appName, null, cacheKey);
     if (cachedData) {
       console.log('✅ Loading agent stats from global cache:', cacheKey);
@@ -134,7 +137,14 @@ const ReviewCount = () => {
     try {
       // Add cache-busting for real-time updates
       const cacheBust = `_t=${Date.now()}&_cache_bust=${Math.random()}`;
-      const response = await fetch(`/backend/api/agent-stats.php?app_name=${encodeURIComponent(appName)}&filter=${timeFilter}&${cacheBust}`);
+      let url = `/backend/api/agent-stats.php?app_name=${encodeURIComponent(appName)}&filter=${timeFilter}&${cacheBust}`;
+
+      // Add custom date range if applicable
+      if (timeFilter === 'custom' && customDateRange.start && customDateRange.end) {
+        url += `&start_date=${customDateRange.start}&end_date=${customDateRange.end}`;
+      }
+
+      const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to fetch agent stats');
       const data = await response.json();
 
@@ -157,7 +167,7 @@ const ReviewCount = () => {
 
   const fetchCountryStats = async (appName) => {
     // Check global cache first
-    const cacheKey = `country_stats_${appName}_${timeFilter}`;
+    const cacheKey = `country_stats_${appName}_${timeFilter}_${customDateRange.start}_${customDateRange.end}`;
     const cachedData = getCachedData(appName, null, cacheKey);
     if (cachedData) {
       console.log('✅ Loading country stats from global cache:', cacheKey);
@@ -172,7 +182,14 @@ const ReviewCount = () => {
     try {
       // Add cache-busting for real-time updates
       const cacheBust = `_t=${Date.now()}&_cache_bust=${Math.random()}`;
-      const response = await fetch(`/backend/api/country-stats.php?app_name=${encodeURIComponent(appName)}&filter=${timeFilter}&${cacheBust}`);
+      let url = `/backend/api/country-stats.php?app_name=${encodeURIComponent(appName)}&filter=${timeFilter}&${cacheBust}`;
+
+      // Add custom date range if applicable
+      if (timeFilter === 'custom' && customDateRange.start && customDateRange.end) {
+        url += `&start_date=${customDateRange.start}&end_date=${customDateRange.end}`;
+      }
+
+      const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to fetch country stats');
       const data = await response.json();
       if (data.success) {
@@ -685,18 +702,175 @@ const ReviewCount = () => {
               <div className="time-filter-tabs">
                 <button
                   className={`time-filter-tab ${timeFilter === 'last_30_days' ? 'active' : ''}`}
-                  onClick={() => setTimeFilter('last_30_days')}
+                  onClick={() => {
+                    setTimeFilter('last_30_days');
+                    setShowCustomDatePicker(false);
+                  }}
                 >
                   📊 Last 30 Days
                 </button>
 
                 <button
                   className={`time-filter-tab ${timeFilter === 'all_time' ? 'active' : ''}`}
-                  onClick={() => setTimeFilter('all_time')}
+                  onClick={() => {
+                    setTimeFilter('all_time');
+                    setShowCustomDatePicker(false);
+                  }}
                 >
                   🏆 All Time
                 </button>
+
+                <button
+                  className={`time-filter-tab ${timeFilter === 'custom' ? 'active' : ''}`}
+                  onClick={() => {
+                    setShowCustomDatePicker(!showCustomDatePicker);
+                    if (!showCustomDatePicker) {
+                      setTimeFilter('custom');
+                    }
+                  }}
+                >
+                  📅 Custom Range
+                </button>
               </div>
+
+              {/* Custom Date Range Picker */}
+              {showCustomDatePicker && (
+                <div style={{
+                  marginTop: '15px',
+                  padding: '25px',
+                  background: 'white',
+                  borderRadius: '12px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '20px',
+                  maxWidth: '650px',
+                  marginLeft: 'auto',
+                  marginRight: 'auto'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'flex-start',
+                    gap: '20px',
+                    flexWrap: 'wrap'
+                  }}>
+                    <div style={{ flex: '0 1 auto', minWidth: '200px', maxWidth: '250px' }}>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '0.9rem',
+                        fontWeight: '600',
+                        color: '#333',
+                        marginBottom: '8px'
+                      }}>
+                        Start Date
+                      </label>
+                      <input
+                        type="date"
+                        value={customDateRange.start}
+                        onChange={(e) => setCustomDateRange({ ...customDateRange, start: e.target.value })}
+                        style={{
+                          width: '100%',
+                          padding: '10px',
+                          border: '2px solid #e5e7eb',
+                          borderRadius: '8px',
+                          fontSize: '0.95rem',
+                          outline: 'none',
+                          transition: 'border-color 0.3s ease'
+                        }}
+                        onFocus={(e) => e.target.style.borderColor = '#10B981'}
+                        onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                      />
+                    </div>
+
+                    <div style={{ flex: '0 1 auto', minWidth: '200px', maxWidth: '250px' }}>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '0.9rem',
+                        fontWeight: '600',
+                        color: '#333',
+                        marginBottom: '8px'
+                      }}>
+                        End Date
+                      </label>
+                      <input
+                        type="date"
+                        value={customDateRange.end}
+                        onChange={(e) => setCustomDateRange({ ...customDateRange, end: e.target.value })}
+                        style={{
+                          width: '100%',
+                          padding: '10px',
+                          border: '2px solid #e5e7eb',
+                          borderRadius: '8px',
+                          fontSize: '0.95rem',
+                          outline: 'none',
+                          transition: 'border-color 0.3s ease'
+                        }}
+                        onFocus={(e) => e.target.style.borderColor = '#10B981'}
+                        onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'center'
+                  }}>
+                    <button
+                      onClick={() => {
+                        if (customDateRange.start && customDateRange.end) {
+                          setTimeFilter('custom');
+                          // Force re-fetch by triggering the useEffect
+                          if (selectedApp) {
+                            fetchAgentStats(selectedApp);
+                            fetchCountryStats(selectedApp);
+                          }
+                        } else {
+                          alert('Please select both start and end dates');
+                        }
+                      }}
+                      disabled={!customDateRange.start || !customDateRange.end}
+                      style={{
+                        padding: '12px 32px',
+                        background: customDateRange.start && customDateRange.end ? '#10B981' : '#d1d5db',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '1rem',
+                        fontWeight: '600',
+                        cursor: customDateRange.start && customDateRange.end ? 'pointer' : 'not-allowed',
+                        transition: 'all 0.3s ease',
+                        whiteSpace: 'nowrap'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (customDateRange.start && customDateRange.end) {
+                          e.target.style.background = '#0d9488';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (customDateRange.start && customDateRange.end) {
+                          e.target.style.background = '#10B981';
+                        }
+                      }}
+                    >
+                      Apply Filter
+                    </button>
+                  </div>
+
+                  {customDateRange.start && customDateRange.end && (
+                    <div style={{
+                      fontSize: '0.85rem',
+                      color: '#666',
+                      textAlign: 'center',
+                      padding: '8px',
+                      background: '#f0fdf4',
+                      borderRadius: '6px'
+                    }}>
+                      📊 Showing data from <strong>{customDateRange.start}</strong> to <strong>{customDateRange.end}</strong>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* App List - Updated for consistent styling */}

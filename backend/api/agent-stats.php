@@ -6,6 +6,8 @@ try {
     // Get the app name and filter from query parameters
     $appName = $_GET['app_name'] ?? null;
     $filter = $_GET['filter'] ?? 'last_30_days'; // Default to last 30 days
+    $startDate = $_GET['start_date'] ?? null;
+    $endDate = $_GET['end_date'] ?? null;
 
     if (!$appName) {
         http_response_code(400);
@@ -15,10 +17,10 @@ try {
         ]);
         exit;
     }
-    
+
     $dbManager = new DatabaseManager();
     $conn = $dbManager->getConnection();
-    
+
     // Get agent statistics for the specified app with date filtering
     // Using standardized date calculations for consistency
     require_once __DIR__ . '/../utils/DateCalculations.php';
@@ -29,6 +31,8 @@ try {
         $dateCondition = DateCalculations::getLast30DaysCondition();
     } elseif ($filter === 'all_time') {
         $dateCondition = ''; // No date filtering for all time
+    } elseif ($filter === 'custom' && $startDate && $endDate) {
+        $dateCondition = "review_date >= '$startDate' AND review_date <= '$endDate'";
     }
 
     $query = "

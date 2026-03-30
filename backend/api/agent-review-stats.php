@@ -12,17 +12,21 @@ require_once __DIR__ . '/../utils/DateCalculations.php';
 try {
     $dbManager = new DatabaseManager();
     $conn = $dbManager->getConnection();
-    
+
     // Get parameters
     $agentName = $_GET['agent_name'] ?? null;
     $filter = $_GET['filter'] ?? 'last_30_days';
-    
+    $startDate = $_GET['start_date'] ?? null;
+    $endDate = $_GET['end_date'] ?? null;
+
     // Determine date condition based on filter
     $dateCondition = '';
     if ($filter === 'last_30_days') {
         $dateCondition = DateCalculations::getLast30DaysCondition();
     } elseif ($filter === 'all_time') {
         $dateCondition = ''; // No date filtering for all time
+    } elseif ($filter === 'custom' && $startDate && $endDate) {
+        $dateCondition = "review_date >= '$startDate' AND review_date <= '$endDate'";
     }
     
     // If agent_name is provided, get detailed stats for that agent across all apps
