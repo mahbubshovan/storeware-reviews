@@ -114,7 +114,7 @@
 }
 
 .app {
-  min-height: 100vh;
+  /* min-height: 100vh; */
   background: linear-gradient(135deg, var(--primary-600) 0%, var(--secondary-600) 100%);
   padding: var(--space-3);
   width: 100%;
