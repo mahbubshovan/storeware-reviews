@@ -1,20 +1,66 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import './Access.css';
 import { useCache } from '../context/CacheContext';
+import { Star, ChevronLeft, ChevronRight, Edit2, Check, X, Zap, RefreshCw, ShoppingBag, Search } from 'lucide-react';
+import { AGENTS, getGravatarUrl, getAgentByName } from '../config/agents';
+import { APPS, getAppIcon } from '../config/appConfig';
+
+// Avatar component — Gravatar image or ShoppingBag icon for Organic
+const AgentAvatar = ({ agent, size = 'sm' }) => {
+  const dim = size === 'sm' ? 'w-6 h-6' : 'w-8 h-8';
+  if (!agent || agent.name === 'Organic') {
+    return (
+      <span className={`${dim} rounded-full bg-teal-50 border border-teal-200 flex items-center justify-center flex-shrink-0`}>
+        <ShoppingBag className="w-3 h-3 text-teal-500" />
+      </span>
+    );
+  }
+  return (
+    <img
+      src={getGravatarUrl(agent.hash)}
+      alt={agent.name}
+      className={`${dim} rounded-full ring-2 ring-teal-100 object-cover flex-shrink-0`}
+    />
+  );
+};
+
+// App tab button with real icon + graceful letter fallback
+const AppTabButton = ({ app, isActive, onClick }) => {
+  const [imgError, setImgError] = useState(false);
+  const initial = app.name?.charAt(0)?.toUpperCase() || '?';
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
+        isActive
+          ? 'bg-gradient-to-r from-cyan-500 to-emerald-500 text-white shadow-md shadow-cyan-500/20'
+          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-800'
+      }`}
+    >
+      {app.icon && !imgError ? (
+        <img
+          src={app.icon}
+          alt={app.name}
+          className="w-5 h-5 rounded-md object-cover flex-shrink-0"
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        <span className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${
+          isActive ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'
+        }`}>
+          {initial}
+        </span>
+      )}
+      <span>{app.name}</span>
+    </button>
+  );
+};
 
 const AccessTabbed = () => {
   // Use global cache from context
   const { getCachedData, setCachedData, clearAppCache } = useCache();
 
-  // App configuration
-  const apps = [
-    { name: 'StoreSEO', slug: 'storeseo' },
-    { name: 'StoreFAQ', slug: 'storefaq' },
-    { name: 'EasyFlow', slug: 'product-options-4' },
-    { name: 'TrustSync', slug: 'customer-review-app' },
-    { name: 'Vidify', slug: 'vidify' },
-    { name: 'BetterDocs FAQ Knowledge Base', slug: 'betterdocs-knowledgebase' }
-  ];
+  // App configuration — sourced from shared config so icons stay in sync
+  const apps = APPS;
 
   // State management
   const [activeTab, setActiveTab] = useState('StoreSEO');
@@ -50,6 +96,10 @@ const AccessTabbed = () => {
   const [editingReview, setEditingReview] = useState(null);
   const [editValue, setEditValue] = useState('');
   const [scrollPosition, setScrollPosition] = useState(0);
+
+  // Dropdown state
+  const [dropdownSearch, setDropdownSearch] = useState('');
+  const dropdownRef = useRef(null);
 
   // Request deduplication - track ongoing requests to prevent duplicates
   const ongoingRequestRef = useRef(null);
@@ -219,9 +269,47 @@ const AccessTabbed = () => {
     }
   };
 
+  // Auto-save when agent is selected from dropdown (no separate Save button needed)
+  const handleAgentSelect = async (reviewId, agentName) => {
+    setEditValue(agentName);
+    setDropdownSearch('');
+    try {
+      const response = await fetch('/backend/api/access-reviews-tabbed.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ review_id: reviewId, earned_by: agentName })
+      });
+      const data = await response.json();
+      if (data.success) {
+        const reviewBeingUpdated = reviews.find(r => r.id === reviewId);
+        const wasUnassigned = !reviewBeingUpdated?.earned_by;
+        setReviews(prevReviews =>
+          prevReviews.map(r => r.id === reviewId ? { ...r, earned_by: agentName } : r)
+        );
+        if (statistics && wasUnassigned && agentName) {
+          setStatistics(prevStats => ({
+            ...prevStats,
+            assigned_reviews: (prevStats.assigned_reviews || 0) + 1,
+            unassigned_reviews: Math.max(0, (prevStats.unassigned_reviews || 0) - 1)
+          }));
+        }
+        clearAppCache(activeTab);
+        setEditingReview(null);
+        setEditValue('');
+        setTimeout(() => { window.scrollTo(0, scrollPosition); }, 100);
+      } else {
+        alert('Error updating assignment: ' + data.error);
+      }
+    } catch (err) {
+      console.error('Error updating assignment:', err);
+      alert('Error updating assignment');
+    }
+  };
+
   const handleEditCancel = () => {
     setEditingReview(null);
     setEditValue('');
+    setDropdownSearch('');
     setTimeout(() => {
       window.scrollTo(0, scrollPosition);
     }, 100);
@@ -344,194 +432,215 @@ const AccessTabbed = () => {
   };
 
   const renderStars = (rating) => {
-    const stars = [];
     const numRating = parseInt(rating);
-
-    // Handle invalid ratings
     if (isNaN(numRating) || numRating < 1 || numRating > 5) {
-      return <span className="invalid-rating">❓</span>;
+      return <span className="text-gray-400 text-sm">No rating</span>;
     }
-
-    for (let i = 1; i <= 5; i++) {
-      stars.push(
-        <span key={i} className={i <= numRating ? 'star filled' : 'star'}>
-          ★
-        </span>
-      );
-    }
-    return stars;
+    return (
+      <div className="flex items-center gap-0.5">
+        {[1,2,3,4,5].map(i => (
+          <Star key={i} className={`w-4 h-4 ${i <= numRating ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`} />
+        ))}
+      </div>
+    );
   };
 
 
 
   return (
-    <div className="access-container">
-      <div className="access-header">
-        <h1>Access Reviews</h1>
-        
+    <div className="space-y-6">
+      {/* Header & Stats */}
+      <div className="bg-white/70 backdrop-blur-md rounded-2xl border border-white/40 shadow-lg p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-800">Access Reviews</h1>
+            <p className="text-sm text-slate-500 mt-0.5">Track which agent earned each customer review</p>
+          </div>
+          {statistics?.cache_status && (
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
+              statistics.cache_status === 'hit'
+                ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+            }`}>
+              {statistics.cache_status === 'hit' ? <Zap className="w-3 h-3" /> : <RefreshCw className="w-3 h-3" />}
+              {statistics.cache_status === 'hit' ? 'Cached' : 'Fresh'}
+            </span>
+          )}
+        </div>
+
         {statistics && (
-          <div className="tab-statistics">
-            <div className="stat-item">
-              <span className="stat-label">Total Reviews</span>
-              <span className="stat-value">{statistics.total_reviews}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">Assigned</span>
-              <span className="stat-value">{statistics.assigned_reviews}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">Unassigned</span>
-              <span className="stat-value">{statistics.unassigned_reviews}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">Avg Rating</span>
-              <span className="stat-value">{statistics.avg_rating}★</span>
-            </div>
-            {statistics.cache_status && (
-              <div className="stat-item">
-                <span className="stat-label">Data</span>
-                <span className={`stat-value cache-${statistics.cache_status}`}>
-                  {statistics.cache_status === 'hit' ? '⚡ Cached' : '🔄 Fresh'}
-                </span>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: 'Total Reviews',    value: statistics.total_reviews,    color: 'from-cyan-500 to-blue-500' },
+              { label: 'Agent Earned',     value: statistics.assigned_reviews, color: 'from-emerald-500 to-teal-500' },
+              { label: 'Organic / Pending',value: statistics.unassigned_reviews,color: 'from-orange-400 to-rose-400' },
+              { label: 'Avg Rating',       value: `${statistics.avg_rating}★`, color: 'from-amber-400 to-yellow-500' },
+            ].map(({ label, value, color }) => (
+              <div key={label} className="bg-white/80 rounded-xl p-4 border border-slate-100 shadow-sm">
+                <p className="text-xs font-medium text-slate-500 mb-1">{label}</p>
+                <p className={`text-2xl font-bold bg-gradient-to-r ${color} bg-clip-text text-transparent`}>{value}</p>
               </div>
-            )}
+            ))}
           </div>
         )}
       </div>
 
-      {/* Tab Navigation */}
-      <div className="tab-navigation">
+      {/* App Tab Navigation */}
+      <div className="bg-white/70 backdrop-blur-md rounded-2xl border border-white/40 shadow-lg p-2 flex flex-wrap gap-1.5">
         {apps.map(app => (
-          <button
+          <AppTabButton
             key={app.name}
-            className={`tab-button ${activeTab === app.name ? 'active' : ''}`}
+            app={app}
+            isActive={activeTab === app.name}
             onClick={() => handleTabChange(app.name)}
-          >
-            {app.name}
-          </button>
+          />
         ))}
       </div>
 
       {/* Tab Content */}
-      <div className="tab-content">
+      <div className="bg-white/70 backdrop-blur-md rounded-2xl border border-white/40 shadow-lg p-6">
         {loading ? (
-          <div className="loading-message">
-            <p>Loading {activeTab} reviews...</p>
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <div className="w-10 h-10 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin" />
+            <p className="text-slate-500 font-medium">Loading {activeTab} reviews…</p>
           </div>
         ) : error ? (
-          <div className="error-message">
-            <p>Error: {error}</p>
-            <button onClick={() => fetchTabReviews(activeTab, tabPages[activeTab])}>
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <p className="text-rose-500 font-medium">Error: {error}</p>
+            <button
+              onClick={() => fetchTabReviews(activeTab, tabPages[activeTab])}
+              className="px-5 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-sm font-semibold transition-all"
+            >
               Retry
             </button>
           </div>
         ) : (
           <>
-            <div className="reviews-header">
-              <h2>{activeTab} Reviews Details</h2>
-              <p>Page {pagination.current_page} of {pagination.total_pages} | Total: {pagination.total_items} reviews</p>
+            {/* Reviews sub-header */}
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-bold text-slate-700">{activeTab} Reviews</h2>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1 text-xs text-slate-500 bg-slate-100 border border-slate-200 rounded-full px-3 py-1 font-medium">
+                  📄 Page {pagination.current_page} of {pagination.total_pages}
+                </span>
+                <span className="inline-flex items-center gap-1 text-xs text-teal-700 bg-teal-50 border border-teal-200 rounded-full px-3 py-1 font-medium">
+                  ⭐ {pagination.total_items} Total Reviews
+                </span>
+              </div>
             </div>
 
             {reviews.length === 0 ? (
-              <div className="no-reviews">
-                <p>No assigned reviews found for {activeTab}</p>
+              <div className="text-center py-12 text-slate-400">
+                <p className="text-lg font-medium">No reviews found for {activeTab}</p>
               </div>
             ) : (
-              <div className="reviews-list">
+              <div className="space-y-3">
                 {reviews.map((review) => (
-                  <div key={review.id} className="review-item">
-                    <div className="review-header">
-                      <div className="review-meta">
-                        <span className="store-name">{review.store_name}</span>
-                        <span className="review-date">{formatDate(review.review_date)}</span>
-                        <span className="country" style={{backgroundColor: '#28a745', color: 'white', padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold'}}>✅ {getCountryName(review.country_name)}</span>
+                  <div key={review.id} className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 hover:shadow-md transition-all duration-200">
+                    {/* Review top row */}
+                    <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-bold text-slate-800 text-sm">{review.store_name}</span>
+                        <span className="text-xs text-slate-400">{formatDate(review.review_date)}</span>
+                        <span className="inline-flex items-center gap-1 bg-emerald-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
+                          ✅ {getCountryName(review.country_name)}
+                        </span>
                       </div>
-                      <div className="review-rating">
-                        {renderStars(review.rating)}
-                      </div>
+                      {renderStars(review.rating)}
                     </div>
-                    
-                    <div className="review-content">
-                      <p>{review.review_content}</p>
-                    </div>
-                    
-                    <div className="review-assignment">
-                      <label>Assigned to:</label>
+
+                    {/* Review body */}
+                    {review.review_content && (
+                      <p className="text-sm text-slate-600 leading-relaxed mb-3 border-l-2 border-cyan-200 pl-3">
+                        {review.review_content}
+                      </p>
+                    )}
+
+                    {/* Assignment row */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="flex items-center gap-1 text-xs font-semibold text-slate-500">
+                        ⭐ Review Earned By:
+                      </span>
+
                       {editingReview === review.id ? (
-                        <div className="edit-assignment">
-                          <input
-                            type="text"
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            placeholder="Enter name"
-                            className="assignment-input"
-                            style={{
-                              padding: '8px 14px',
-                              border: '1px solid #D1D5DB',
-                              borderRadius: '20px',
-                              fontSize: '14px',
-                              background: '#F9FAFB',
-                              color: '#1F2937',
-                              minWidth: '140px',
-                              fontWeight: '500',
-                              transition: 'all 0.2s ease'
-                            }}
-                            autoFocus
-                          />
-                          <button
-                            onClick={() => handleEditSave(review.id)}
-                            className="save-btn"
-                            style={{
-                              background: '#10B981',
-                              color: 'white',
-                              border: 'none',
-                              padding: '8px 18px',
-                              borderRadius: '20px',
-                              fontSize: '13px',
-                              fontWeight: '600',
-                              cursor: 'pointer',
-                              transition: 'all 0.2s ease'
-                            }}
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={handleEditCancel}
-                            className="cancel-btn"
-                            style={{
-                              background: '#F3F4F6',
-                              color: '#6B7280',
-                              border: '1px solid #D1D5DB',
-                              padding: '8px 18px',
-                              borderRadius: '20px',
-                              fontSize: '13px',
-                              fontWeight: '600',
-                              cursor: 'pointer',
-                              transition: 'all 0.2s ease'
-                            }}
-                          >
-                            Cancel
-                          </button>
+                        /* ── Custom Agent Dropdown ── */
+                        <div className="relative" ref={dropdownRef}>
+                          <div className="bg-white border border-teal-300 rounded-xl shadow-xl z-50 w-56 overflow-hidden">
+                            {/* Search */}
+                            <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-100">
+                              <Search className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                              <input
+                                type="text"
+                                value={dropdownSearch}
+                                onChange={(e) => setDropdownSearch(e.target.value)}
+                                placeholder="Search agent…"
+                                autoFocus
+                                className="w-full text-xs outline-none bg-transparent text-slate-700 placeholder-slate-400"
+                              />
+                            </div>
+                            {/* Agent list */}
+                            <ul className="py-1 max-h-52 overflow-y-auto">
+                              {AGENTS.filter(a =>
+                                a.name.toLowerCase().includes(dropdownSearch.toLowerCase())
+                              ).map(agent => (
+                                <li key={agent.name}>
+                                  <button
+                                    onClick={() => handleAgentSelect(review.id, agent.name)}
+                                    className="w-full flex items-center gap-3 px-3 py-2 hover:bg-teal-50 transition-colors text-left"
+                                  >
+                                    <AgentAvatar agent={agent} size="md" />
+                                    <span className="text-sm font-medium text-slate-700 flex-1">
+                                      {agent.name === 'Organic' ? 'From Shopify Store' : agent.name}
+                                    </span>
+                                    {editValue === agent.name && (
+                                      <Check className="w-3.5 h-3.5 text-teal-500 flex-shrink-0" />
+                                    )}
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                            {/* Cancel */}
+                            <div className="border-t border-slate-100 px-3 py-2">
+                              <button
+                                onClick={handleEditCancel}
+                                className="w-full flex items-center justify-center gap-1 text-xs text-slate-500 hover:text-slate-700 transition-colors"
+                              >
+                                <X className="w-3 h-3" /> Cancel
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       ) : (
-                        <span
-                          className="assignment-value clickable"
-                          onClick={() => handleEditClick(review)}
-                          title="Click to edit"
-                          style={{
-                            background: '#F0FDF4',
-                            color: '#15803D',
-                            padding: '6px 16px',
-                            borderRadius: '20px',
-                            fontSize: '14px',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                            border: '1px solid #DCFCE7',
-                            display: 'inline-block'
-                          }}
-                        >
-                          {review.earned_by || 'Unassigned'}
-                        </span>
+                        /* ── Agent Pill (view mode) ── */
+                        (() => {
+                          const agent = getAgentByName(review.earned_by);
+                          const isOrganic = !review.earned_by || review.earned_by === 'Organic';
+                          return (
+                            <button
+                              onClick={() => handleEditClick(review)}
+                              title="Click to reassign"
+                              className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium transition-all
+                                bg-teal-50 text-teal-700 border border-teal-200 hover:bg-teal-100 cursor-pointer"
+                            >
+                              {isOrganic ? (
+                                <>
+                                  <span className="w-5 h-5 rounded-full bg-teal-100 flex items-center justify-center flex-shrink-0">
+                                    <ShoppingBag className="w-3 h-3 text-teal-500" />
+                                  </span>
+                                  <span>Organic Review</span>
+                                </>
+                              ) : agent ? (
+                                <>
+                                  <AgentAvatar agent={agent} size="sm" />
+                                  <span>{agent.name}</span>
+                                </>
+                              ) : (
+                                <span>{review.earned_by}</span>
+                              )}
+                              <Edit2 className="w-3 h-3 opacity-40" />
+                            </button>
+                          );
+                        })()
                       )}
                     </div>
                   </div>
@@ -541,31 +650,39 @@ const AccessTabbed = () => {
 
             {/* Pagination */}
             {pagination.total_pages > 1 && (
-              <div className="pagination">
+              <div className="flex items-center justify-center gap-1.5 mt-6 flex-wrap">
                 <button
                   onClick={() => handlePageChange(pagination.current_page - 1)}
                   disabled={!pagination.has_prev_page}
-                  className="pagination-btn"
+                  className="flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-semibold border transition-all
+                    disabled:opacity-40 disabled:cursor-not-allowed
+                    border-slate-200 text-slate-600 hover:bg-slate-100"
                 >
-                  Previous
+                  <ChevronLeft className="w-4 h-4" /> Prev
                 </button>
-                
+
                 {pagination.page_numbers.map(pageNum => (
                   <button
                     key={pageNum}
                     onClick={() => handlePageChange(pageNum)}
-                    className={`pagination-btn ${pageNum === pagination.current_page ? 'active' : ''}`}
+                    className={`w-9 h-9 rounded-xl text-sm font-semibold transition-all ${
+                      pageNum === pagination.current_page
+                        ? 'bg-gradient-to-r from-cyan-500 to-emerald-500 text-white shadow-md shadow-cyan-500/20'
+                        : 'border border-slate-200 text-slate-600 hover:bg-slate-100'
+                    }`}
                   >
                     {pageNum}
                   </button>
                 ))}
-                
+
                 <button
                   onClick={() => handlePageChange(pagination.current_page + 1)}
                   disabled={!pagination.has_next_page}
-                  className="pagination-btn"
+                  className="flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-semibold border transition-all
+                    disabled:opacity-40 disabled:cursor-not-allowed
+                    border-slate-200 text-slate-600 hover:bg-slate-100"
                 >
-                  Next
+                  Next <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
             )}

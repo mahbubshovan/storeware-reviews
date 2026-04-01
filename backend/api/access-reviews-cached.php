@@ -190,7 +190,7 @@ function handleGetCachedReviews($conn) {
         'EasyFlow' => 5.0,
         'TrustSync' => 5.0,
         'BetterDocs FAQ Knowledge Base' => 4.8,
-        'Vidify' => 5.0
+        'Vidify' => 3.6
     ];
     $avgRating = $avgRatings[$appName] ?? 4.8;
 

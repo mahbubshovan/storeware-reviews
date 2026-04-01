@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { BarChart3, Users } from 'lucide-react';
+import storewareIcon from '../assets/storeware-icon.png';
 
 const Layout = ({ children }) => {
   const location = useLocation();
@@ -27,11 +28,16 @@ const Layout = ({ children }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex">
-              <div className="flex-shrink-0 flex items-center">
-                <BarChart3 className="h-8 w-8 text-blue-600" />
-                <span className="ml-2 text-xl font-bold text-gray-900">
-                  Shopify Review Analytics
-                </span>
+              <div className="flex-shrink-0 flex items-center gap-2.5">
+                <img
+                  src={storewareIcon}
+                  alt="Storeware"
+                  className="h-9 w-9 rounded-xl object-cover"
+                />
+                <div className="flex flex-col leading-tight">
+                  <span className="text-base font-bold text-gray-900 leading-none">Storeware Reviews</span>
+                  <span className="text-[10px] text-gray-400 leading-tight tracking-wide">Shopify App Review Analytics</span>
+                </div>
               </div>
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                 {navigation.map((item) => {
