@@ -3,6 +3,7 @@ import { useCache } from '../context/CacheContext';
 import { BarChart3, Globe, Users, ChevronDown, ShoppingBag } from 'lucide-react';
 import { getGravatarUrl, getAgentByName } from '../config/agents';
 import { getAppIcon } from '../config/appConfig';
+import AgentEarnings from '../components/AgentEarnings';
 
 // Small inline app icon with graceful letter fallback
 const AppIconInline = ({ appName }) => {
@@ -596,6 +597,15 @@ const ReviewCount = () => {
               );
             })()}
           </div>
+
+          {/* Agent Earnings Section — StoreSEO only */}
+          {selectedApp === 'StoreSEO' && (
+            <AgentEarnings
+              agentStats={agentStats}
+              timeFilter={timeFilter}
+              customDateRange={customDateRange}
+            />
+          )}
 
           {/* Country Stats Section */}
           <div className="bg-white/70 backdrop-blur-md rounded-2xl border border-white/40 shadow-lg p-6">

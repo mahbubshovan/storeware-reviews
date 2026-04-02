@@ -33,8 +33,10 @@ const AgentAvatarImg = ({ agentName, sizeClass = 'w-9 h-9', ringClass = 'ring-2 
   );
 };
 
+const ORGANIC_AGENTS = new Set(['Organic', 'Organic Review', 'From App']);
+
 // App icon card — shows real Shopify CDN icon with a gradient letter fallback
-const AppIconCard = ({ appName, reviewCount, pct, grad, iconUrl, initial }) => {
+const AppIconCard = ({ appName, reviewCount, pct, grad, iconUrl, initial, showEarnings }) => {
   const [imgError, setImgError] = useState(false);
   return (
     <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
@@ -59,6 +61,27 @@ const AppIconCard = ({ appName, reviewCount, pct, grad, iconUrl, initial }) => {
           {reviewCount}
         </p>
         <p className="text-xs text-slate-400">{reviewCount === 1 ? 'Review Earned' : 'Reviews Earned'}</p>
+
+        {/* Earnings strip */}
+        <div className="border-t border-slate-100 mt-3 pt-3">
+          {showEarnings && appName === 'StoreSEO' ? (
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-slate-600 flex items-center gap-1">
+                  💰 StoreSEO earnings
+                </p>
+                <p className="text-xs text-emerald-600 font-medium mt-0.5">
+                  {reviewCount} reviews × $20
+                </p>
+              </div>
+              <span className="text-sm font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 whitespace-nowrap flex-shrink-0">
+                ${reviewCount * 20}
+              </span>
+            </div>
+          ) : (
+            <p className="text-xs text-slate-400">No earnings tracked for this app</p>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -412,6 +435,7 @@ const ReviewCreditSimple = () => {
                   const grad = gradients[index % gradients.length];
                   const iconUrl = getAppIcon(app.app_name);
                   const initial = app.app_name?.charAt(0)?.toUpperCase() || '?';
+                  const isOrganic = ORGANIC_AGENTS.has(selectedAgentDetails.agent_name);
                   return (
                     <AppIconCard
                       key={index}
@@ -421,6 +445,7 @@ const ReviewCreditSimple = () => {
                       grad={grad}
                       iconUrl={iconUrl}
                       initial={initial}
+                      showEarnings={!isOrganic}
                     />
                   );
                 })}
