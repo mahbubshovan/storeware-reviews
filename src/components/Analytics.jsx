@@ -530,7 +530,6 @@ const Analytics = () => {
                 {/* Animated Loader */}
                 <div className="relative">
                   <div className="w-20 h-20 mx-auto">
-                    <div className="absolute inset-0 rounded-full border-4 border-cyan-200 animate-ping"></div>
                     <div className="relative w-20 h-20 rounded-full border-4 border-transparent border-t-cyan-500 animate-spin"></div>
                   </div>
                   <div className="mt-4 text-4xl">📱</div>
