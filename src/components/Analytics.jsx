@@ -266,11 +266,44 @@ const Analytics = () => {
     }
   }, [reviewsFilter]);
 
-  useEffect(() => {
-    if (selectedApp && reviewsFilter === 'custom' && customDateRange.start && customDateRange.end) {
-      fetchFilteredReviews(selectedApp, reviewsFilter);
+  // ── computeDateRange ────────────────────────────────────────────────────────
+  // Returns { start, end } as "MMM DD, YYYY" strings based on the active filter.
+  // For the date pill we always show the *filter window*, not the actual review dates.
+  const computeDateRange = (filter, customRange) => {
+    const today = new Date();
+    const fmt = (d) =>
+      d.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+
+    if (filter === 'this_month') {
+      const start = new Date(today.getFullYear(), today.getMonth(), 1);
+      const end   = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      return { start: fmt(start), end: fmt(end) };
     }
-  }, [customDateRange]);
+    if (filter === 'last_month') {
+      const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const end   = new Date(today.getFullYear(), today.getMonth(), 0);
+      return { start: fmt(start), end: fmt(end) };
+    }
+    if (filter === 'last_90_days') {
+      const start = new Date(today);
+      start.setDate(today.getDate() - 89);
+      return { start: fmt(start), end: fmt(today) };
+    }
+    if (filter === 'last_30_days') {
+      const start = new Date(today);
+      start.setDate(today.getDate() - 29);
+      return { start: fmt(start), end: fmt(today) };
+    }
+    if (filter === 'custom' && customRange.start && customRange.end) {
+      const [sy, sm, sd] = customRange.start.split('-').map(Number);
+      const [ey, em, ed] = customRange.end.split('-').map(Number);
+      return {
+        start: fmt(new Date(sy, sm - 1, sd)),
+        end:   fmt(new Date(ey, em - 1, ed)),
+      };
+    }
+    return null;
+  };
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -771,13 +804,15 @@ const Analytics = () => {
                     </div>
 
                     <div className="flex flex-wrap gap-2">
+                      {/* Quick-fill shortcuts — these just pre-fill the inputs; click Apply to fetch */}
                       <button
                         onClick={() => {
                           const today = new Date();
-                          const lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+                          const start = new Date(today);
+                          start.setDate(today.getDate() - 6); // today − 6 = 7 days inclusive
                           setCustomDateRange({
-                            start: lastWeek.toISOString().split('T')[0],
-                            end: today.toISOString().split('T')[0]
+                            start: start.toISOString().split('T')[0],
+                            end: today.toISOString().split('T')[0],
                           });
                         }}
                         className="px-3 py-1.5 rounded-lg bg-white border border-cyan-300 text-cyan-700 text-sm font-medium hover:bg-cyan-50 transition-all"
@@ -787,10 +822,11 @@ const Analytics = () => {
                       <button
                         onClick={() => {
                           const today = new Date();
-                          const lastMonth = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+                          const start = new Date(today);
+                          start.setDate(today.getDate() - 29); // today − 29 = 30 days inclusive
                           setCustomDateRange({
-                            start: lastMonth.toISOString().split('T')[0],
-                            end: today.toISOString().split('T')[0]
+                            start: start.toISOString().split('T')[0],
+                            end: today.toISOString().split('T')[0],
                           });
                         }}
                         className="px-3 py-1.5 rounded-lg bg-white border border-cyan-300 text-cyan-700 text-sm font-medium hover:bg-cyan-50 transition-all"
@@ -798,28 +834,39 @@ const Analytics = () => {
                         Last 30 Days
                       </button>
                       <button
-                        onClick={() => {
-                          setCustomDateRange({ start: '', end: '' });
-                        }}
+                        onClick={() => setCustomDateRange({ start: '', end: '' })}
                         className="px-3 py-1.5 rounded-lg bg-white border border-red-300 text-red-700 text-sm font-medium hover:bg-red-50 transition-all"
                       >
                         Clear
+                      </button>
+                      {/* Apply — only active when both dates are set */}
+                      <button
+                        onClick={() => fetchFilteredReviews(selectedApp, 'custom')}
+                        disabled={!customDateRange.start || !customDateRange.end}
+                        className="px-4 py-1.5 rounded-lg bg-teal-500 text-white text-sm font-semibold hover:bg-teal-600 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        Apply
                       </button>
                     </div>
                   </div>
                 )}
 
                 {/* Date Range Indicator — pill badges */}
-                {latestReviews.length > 0 && (
-                  <div className="mb-4 flex flex-wrap items-center gap-2">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-50 border border-teal-200 text-teal-700 text-xs font-medium">
-                      📅 {new Date(latestReviews[latestReviews.length - 1]?.review_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} – {new Date(latestReviews[0]?.review_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-600 text-xs font-medium">
-                      📄 {latestReviews.length} Reviews
-                    </span>
-                  </div>
-                )}
+                {latestReviews.length > 0 && (() => {
+                  const dr = computeDateRange(reviewsFilter, customDateRange);
+                  return (
+                    <div className="mb-4 flex flex-wrap items-center gap-2">
+                      {dr && (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-50 border border-teal-200 text-teal-700 text-xs font-medium">
+                          📅 {dr.start} – {dr.end}
+                        </span>
+                      )}
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-600 text-xs font-medium">
+                        📄 {latestReviews.length} Reviews
+                      </span>
+                    </div>
+                  );
+                })()}
 
                 <div className="space-y-4">
                   {latestReviews.length > 0 ? (
