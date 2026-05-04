@@ -43,20 +43,49 @@ class UniversalLiveScraper {
 
         foreach ($pageReviews as $review) {
             try {
-                // Check if review already exists
+                // Identify the row by (app_name, store_name) only — a reviewer can only have
+                // one review per app on Shopify, so any change is an edit, not a new entry.
+                $stmt = $conn->prepare("SELECT id FROM reviews WHERE app_name = ? AND store_name = ? LIMIT 1");
+                $stmt->execute([$appName, $review['store_name']]);
+                $existingId = $stmt->fetchColumn();
+                $isNew = ($existingId === false);
+
+                // Upsert the review (UNIQUE KEY uq_app_store keys this).
                 $stmt = $conn->prepare("
-                    SELECT id FROM reviews
-                    WHERE app_name = ? AND store_name = ? AND review_date = ?
-                    LIMIT 1
+                    INSERT INTO reviews (app_name, store_name, country_name, rating, review_content, review_date, is_active, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, TRUE, NOW(), NOW())
+                    ON DUPLICATE KEY UPDATE
+                        country_name = VALUES(country_name),
+                        rating = VALUES(rating),
+                        review_content = VALUES(review_content),
+                        review_date = VALUES(review_date),
+                        is_active = TRUE,
+                        updated_at = NOW()
                 ");
-                $stmt->execute([$appName, $review['store_name'], $review['review_date']]);
-                $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+                $stmt->execute([
+                    $appName,
+                    $review['store_name'],
+                    $review['country_name'],
+                    $review['rating'],
+                    $review['review_content'],
+                    $review['review_date']
+                ]);
 
-                if (!$existing) {
-                    // New review - save it
+                $reviewId = $isNew ? (int)$conn->lastInsertId() : (int)$existingId;
+
+                // Mirror into access_reviews for last 30 days, keyed by original_review_id.
+                if ($reviewId > 0) {
                     $stmt = $conn->prepare("
-                        INSERT INTO reviews (app_name, store_name, country_name, rating, review_content, review_date, is_active, created_at)
-                        VALUES (?, ?, ?, ?, ?, ?, TRUE, NOW())
+                        INSERT INTO access_reviews (app_name, store_name, country_name, rating, review_content, review_date, original_review_id, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                        ON DUPLICATE KEY UPDATE
+                            app_name = VALUES(app_name),
+                            store_name = VALUES(store_name),
+                            country_name = VALUES(country_name),
+                            rating = VALUES(rating),
+                            review_content = VALUES(review_content),
+                            review_date = VALUES(review_date),
+                            updated_at = NOW()
                     ");
                     $stmt->execute([
                         $appName,
@@ -64,23 +93,12 @@ class UniversalLiveScraper {
                         $review['country_name'],
                         $review['rating'],
                         $review['review_content'],
-                        $review['review_date']
+                        $review['review_date'],
+                        $reviewId
                     ]);
+                }
 
-                    // Also add to access_reviews for last 30 days
-                    $stmt = $conn->prepare("
-                        INSERT INTO access_reviews (app_name, store_name, country_name, rating, review_content, review_date, created_at)
-                        VALUES (?, ?, ?, ?, ?, ?, NOW())
-                    ");
-                    $stmt->execute([
-                        $appName,
-                        $review['store_name'],
-                        $review['country_name'],
-                        $review['rating'],
-                        $review['review_content'],
-                        $review['review_date']
-                    ]);
-
+                if ($isNew) {
                     $newReviewsCount++;
                 }
             } catch (Exception $e) {
@@ -456,12 +474,14 @@ class UniversalLiveScraper {
         try {
             $conn = $this->dbManager->getConnection();
             $stmt = $conn->prepare("
-                INSERT INTO reviews (app_name, store_name, country_name, rating, review_content, review_date, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, NOW())
+                INSERT INTO reviews (app_name, store_name, country_name, rating, review_content, review_date, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
                 ON DUPLICATE KEY UPDATE
+                    country_name = VALUES(country_name),
                     rating = VALUES(rating),
                     review_content = VALUES(review_content),
-                    created_at = NOW()
+                    review_date = VALUES(review_date),
+                    updated_at = NOW()
             ");
 
             return $stmt->execute([

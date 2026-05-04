@@ -54,13 +54,18 @@ class EnhancedAnalytics {
             $preciseAverage = $this->calculateAverageFromDistribution($ratingDistribution);
             $displayRating = $overallRating ?: $preciseAverage; // Use extracted rating or calculated as fallback
 
+            // Prefer the live rating-distribution total (matches Shopify's review count exactly).
+            // Fall back to the DB total only when the scrape returned an empty distribution.
+            $liveTotal = array_sum($ratingDistribution);
+            $totalReviews = $liveTotal > 0 ? $liveTotal : $analyticsData['total_reviews'];
+
             return [
                 'success' => true,
                 'data' => [
                     'app_name' => $appName,
                     'this_month_count' => $analyticsData['this_month_count'],
                     'last_30_days_count' => $analyticsData['last_30_days_count'],
-                    'total_reviews' => $analyticsData['total_reviews'],
+                    'total_reviews' => $totalReviews,
                     'average_rating' => $displayRating, // Use extracted Shopify rating (real data from page)
                     'shopify_display_rating' => $displayRating, // Same as average_rating for consistency
                     'calculated_average_rating' => $preciseAverage, // Calculated from distribution for comparison
@@ -104,15 +109,15 @@ class EnhancedAnalytics {
         
         foreach ($reviews as $review) {
             if ($this->isValidReview($review)) {
-                // Check if this review already exists in our database
-                if (!$this->reviewExists($appName, $review)) {
-                    // Save new review to both tables
-                    $this->saveNewReview($appName, $review);
+                $isNew = !$this->reviewExists($appName, $review);
+                // Always upsert so an edited rating/content/date refreshes the existing row.
+                $this->saveNewReview($appName, $review);
+                if ($isNew) {
                     $newReviewsCount++;
                 }
             }
         }
-        
+
         return $newReviewsCount;
     }
     
@@ -324,19 +329,24 @@ class EnhancedAnalytics {
     }
     
     private function reviewExists($appName, $review) {
-        $stmt = $this->pdo->prepare('
-            SELECT COUNT(*) FROM reviews 
-            WHERE app_name = ? AND store_name = ? AND review_date = ? AND review_content = ?
-        ');
-        $stmt->execute([$appName, $review['store_name'], $review['review_date'], $review['review_content']]);
-        return $stmt->fetchColumn() > 0;
+        // A reviewer can only have one review per app on Shopify; (app_name, store_name)
+        // is the natural identity. Edits to rating/content/date are updates, not new rows.
+        $stmt = $this->pdo->prepare('SELECT id FROM reviews WHERE app_name = ? AND store_name = ? LIMIT 1');
+        $stmt->execute([$appName, $review['store_name']]);
+        return $stmt->fetchColumn() !== false;
     }
-    
+
     private function saveNewReview($appName, $review) {
-        // Save to reviews table
+        // Upsert the review: if the reviewer already has a row, refresh rating/content/date/country.
         $stmt = $this->pdo->prepare('
             INSERT INTO reviews (app_name, store_name, country_name, rating, review_content, review_date, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
+            ON DUPLICATE KEY UPDATE
+                country_name = VALUES(country_name),
+                rating = VALUES(rating),
+                review_content = VALUES(review_content),
+                review_date = VALUES(review_date),
+                updated_at = NOW()
         ');
         $stmt->execute([
             $appName,
@@ -346,15 +356,27 @@ class EnhancedAnalytics {
             $review['review_content'],
             $review['review_date']
         ]);
-        
-        $reviewId = $this->pdo->lastInsertId();
-        
-        // Save to access_reviews table if it's within last 30 days
+
+        // lastInsertId() is 0 on UPDATE branch; look up the canonical id.
+        $reviewId = (int)$this->pdo->lastInsertId();
+        if ($reviewId === 0) {
+            $lookup = $this->pdo->prepare('SELECT id FROM reviews WHERE app_name = ? AND store_name = ?');
+            $lookup->execute([$appName, $review['store_name']]);
+            $reviewId = (int)$lookup->fetchColumn();
+        }
+
+        // Mirror into access_reviews for the last 30-day window.
         $thirtyDaysAgo = date('Y-m-d', strtotime('-30 days'));
-        if ($review['review_date'] >= $thirtyDaysAgo) {
+        if ($reviewId > 0 && $review['review_date'] >= $thirtyDaysAgo) {
             $stmt = $this->pdo->prepare('
                 INSERT INTO access_reviews (app_name, review_date, review_content, country_name, original_review_id, created_at)
                 VALUES (?, ?, ?, ?, ?, NOW())
+                ON DUPLICATE KEY UPDATE
+                    app_name = VALUES(app_name),
+                    review_date = VALUES(review_date),
+                    review_content = VALUES(review_content),
+                    country_name = VALUES(country_name),
+                    updated_at = NOW()
             ');
             $stmt->execute([
                 $appName,

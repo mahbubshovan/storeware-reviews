@@ -144,16 +144,17 @@ const AccessTabbed = () => {
 
     try {
       console.log('✅ Fetching reviews from API:', requestKey);
-      const response = await fetch(
-        `/backend/api/access-reviews-cached.php?app=${encodeURIComponent(appName)}&page=${page}&limit=15`
-      );
+      const [reviewsResp, analyticsResp] = await Promise.all([
+        fetch(`/backend/api/access-reviews-cached.php?app=${encodeURIComponent(appName)}&page=${page}&limit=15`),
+        // Pull the live Shopify total + avg rating so the header matches the Analytics dashboard
+        fetch(`/backend/api/enhanced-analytics.php?app=${encodeURIComponent(appName)}`).catch(() => null),
+      ]);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (!reviewsResp.ok) {
+        throw new Error(`HTTP error! status: ${reviewsResp.status}`);
       }
 
-      // Get response text first to debug
-      const responseText = await response.text();
+      const responseText = await reviewsResp.text();
       console.log('Response text:', responseText.substring(0, 200));
 
       if (!responseText) {
@@ -165,9 +166,31 @@ const AccessTabbed = () => {
       if (data.success) {
         setReviews(data.data.reviews || []);
         setPagination(data.data.pagination || {});
-        setStatistics(data.data.statistics || {});
-        // Cache the data globally
-        setCachedData(appName, data.data, null, cacheKey);
+
+        let mergedStats = data.data.statistics || {};
+        if (analyticsResp && analyticsResp.ok) {
+          try {
+            const analyticsData = await analyticsResp.json();
+            if (analyticsData?.success && analyticsData.data) {
+              const liveTotal = analyticsData.data.total_reviews;
+              const liveAvg = analyticsData.data.average_rating;
+              const assigned = mergedStats.assigned_reviews || 0;
+              mergedStats = {
+                ...mergedStats,
+                total_reviews: liveTotal ?? mergedStats.total_reviews,
+                avg_rating: liveAvg ?? mergedStats.avg_rating,
+                unassigned_reviews:
+                  liveTotal != null ? Math.max(0, liveTotal - assigned) : mergedStats.unassigned_reviews,
+              };
+            }
+          } catch (mergeErr) {
+            console.warn('Could not merge analytics stats:', mergeErr);
+          }
+        }
+
+        setStatistics(mergedStats);
+        // Cache the merged statistics so future loads stay consistent
+        setCachedData(appName, { ...data.data, statistics: mergedStats }, null, cacheKey);
       } else {
         throw new Error(data.error || 'Failed to fetch reviews');
       }
@@ -524,7 +547,7 @@ const AccessTabbed = () => {
                   📄 Page {pagination.current_page} of {pagination.total_pages}
                 </span>
                 <span className="inline-flex items-center gap-1 text-xs text-teal-700 bg-teal-50 border border-teal-200 rounded-full px-3 py-1 font-medium">
-                  ⭐ {pagination.total_items} Total Reviews
+                  ⭐ {statistics?.total_reviews ?? pagination.total_items} Total Reviews
                 </span>
               </div>
             </div>
