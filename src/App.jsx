@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import { BarChart3, FileText, TrendingUp, Users } from 'lucide-react'
+import { BarChart3, FileText, TrendingUp, Users, ShoppingCart } from 'lucide-react'
 import storewareIcon from './assets/storeware-icon.png'
 import Analytics from './components/Analytics'
 import AccessTabbed from './pages/AccessTabbed'
 import ReviewCount from './pages/ReviewCount'
 import ReviewCredit from './pages/ReviewCreditSimple'
+import SalesTracker from './pages/SalesTracker'
 import { CacheProvider } from './context/CacheContext'
 
 function App() {
@@ -16,7 +17,8 @@ function App() {
       'analytics': 'Analytics Dashboard - Shopify App Review Analytics',
       'access-tabbed': 'Access Reviews - Shopify App Review Analytics',
       'appwise-reviews': 'Appwise Reviews - Shopify App Review Analytics',
-      'agent-reviews': 'Agent Reviews - Shopify App Review Analytics'
+      'agent-reviews': 'Agent Reviews - Shopify App Review Analytics',
+      'sales-tracker': 'Sales Tracker - Shopify App Review Analytics'
     };
     document.title = titles[currentView] || 'Shopify App Review Analytics';
   }, [currentView]);
@@ -26,6 +28,7 @@ function App() {
     { id: 'access-tabbed', label: 'Access Reviews', icon: FileText },
     { id: 'appwise-reviews', label: 'Appwise Reviews', icon: TrendingUp },
     { id: 'agent-reviews', label: 'Agent Reviews', icon: Users },
+    { id: 'sales-tracker', label: 'Sales Tracker', icon: ShoppingCart },
   ];
 
   return (
@@ -128,6 +131,8 @@ function App() {
             <ReviewCount />
           ) : currentView === 'agent-reviews' ? (
             <ReviewCredit />
+          ) : currentView === 'sales-tracker' ? (
+            <SalesTracker />
           ) : (
             <Analytics />
           )}
