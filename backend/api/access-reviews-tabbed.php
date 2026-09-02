@@ -11,6 +11,7 @@
 require_once __DIR__ . '/../config/cors.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../scraper/ShopifyReviewScraper.php';
+require_once __DIR__ . '/../utils/SlackNotifier.php';
 
 header('Content-Type: application/json');
 
@@ -25,7 +26,12 @@ try {
             break;
 
         case 'POST':
-            handleUpdateAssignment($conn);
+            $payload = json_decode(file_get_contents('php://input'), true) ?: [];
+            if (($payload['action'] ?? '') === 'send_to_slack') {
+                handleSendToSlack($conn, $payload);
+            } else {
+                handleUpdateAssignment($conn, $payload);
+            }
             break;
 
         default:
@@ -229,46 +235,108 @@ function getLiveStatistics($appName) {
     ];
 }
 
-function handleUpdateAssignment($conn) {
-    $input = json_decode(file_get_contents('php://input'), true);
-    
+function handleUpdateAssignment($conn, $input) {
+
     if (!isset($input['review_id']) || !isset($input['earned_by'])) {
         http_response_code(400);
         echo json_encode(['success' => false, 'error' => 'Missing required fields']);
         return;
     }
-    
+
     $reviewId = $input['review_id'];
     $earnedBy = trim($input['earned_by']);
-    
+
     try {
-        // Update in reviews table (the actual data source for Access Tabbed)
+        // Assigning an agent never posts to Slack — sharing is a deliberate act,
+        // triggered by the "Send to Slack" button (see handleSendToSlack).
+        $lookup = $conn->prepare("SELECT earned_by FROM reviews WHERE id = ?");
+        $lookup->execute([$reviewId]);
+        $review = $lookup->fetch(PDO::FETCH_ASSOC);
+
+        if (!$review) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'error' => 'Review not found']);
+            return;
+        }
+
+        // Re-picking the agent a review already belongs to is a no-op; skip the
+        // write rather than reporting a phantom "no rows changed" failure.
+        if (trim((string) $review['earned_by']) === $earnedBy) {
+            echo json_encode(['success' => true, 'message' => 'Assignment unchanged']);
+            return;
+        }
+
         $stmt = $conn->prepare("
             UPDATE reviews
             SET earned_by = ?, updated_at = NOW()
             WHERE id = ?
         ");
-        
-        $result = $stmt->execute([$earnedBy, $reviewId]);
-        
-        if ($result && $stmt->rowCount() > 0) {
-            echo json_encode([
-                'success' => true,
-                'message' => 'Assignment updated successfully'
-            ]);
-        } else {
-            echo json_encode([
-                'success' => false,
-                'error' => 'Review not found or no changes made'
-            ]);
-        }
-        
+        $stmt->execute([$earnedBy, $reviewId]);
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Assignment updated successfully'
+        ]);
+
     } catch (Exception $e) {
         http_response_code(500);
         echo json_encode([
             'success' => false,
             'error' => 'Database error: ' . $e->getMessage()
         ]);
+    }
+}
+
+/**
+ * Manually push one review to the Slack channel, on demand from the dashboard's
+ * "Send to Slack" button. Independent of assignment: it re-sends whatever the
+ * review currently looks like, and works for uncredited reviews too.
+ */
+function handleSendToSlack($conn, $input) {
+    if (!isset($input['review_id'])) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'error' => 'Missing review_id']);
+        return;
+    }
+
+    try {
+        $stmt = $conn->prepare("
+            SELECT id, app_name, store_name, country_name, rating,
+                   review_content, review_date, earned_by
+            FROM reviews
+            WHERE id = ?
+        ");
+        $stmt->execute([$input['review_id']]);
+        $review = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$review) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'error' => 'Review not found']);
+            return;
+        }
+
+        // "Organic" marks a review nobody earned, so it shares with no credit line.
+        $earnedBy = trim((string) $review['earned_by']);
+        if (strcasecmp($earnedBy, 'Organic') === 0) {
+            $earnedBy = '';
+        }
+
+        $result = SlackNotifier::notifyReviewAssignment($review, $earnedBy);
+
+        if (!empty($result['sent'])) {
+            echo json_encode(['success' => true, 'message' => 'Sent to Slack', 'slack' => $result]);
+        } else {
+            // Surface the reason so the button can explain itself in the UI.
+            echo json_encode([
+                'success' => false,
+                'error' => $result['error'] ?? $result['skipped'] ?? 'Slack post failed',
+                'slack' => $result
+            ]);
+        }
+
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'error' => 'Server error: ' . $e->getMessage()]);
     }
 }
 
