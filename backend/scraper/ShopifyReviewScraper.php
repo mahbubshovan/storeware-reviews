@@ -66,15 +66,108 @@ class ShopifyReviewScraper {
     }
     
     /**
+     * Find a stored review on the Shopify App Store and return its permalink
+     * (https://apps.shopify.com/reviews/{id}, the address behind Shopify's "Copy
+     * link to review" button), or null when it can't be found.
+     *
+     * Reviews are stored without Shopify's id, so the review is matched by store
+     * name — a store can review an app only once. Shopify lists reviews newest
+     * first, ten per page. The number of newer stored reviews gives the page to
+     * try first, but our copy can be several pages out, so from there each page's
+     * dates steer the search: it gallops towards the review, then bisects once it
+     * has overshot. Gives up after eight pages.
+     *
+     * @param array $review       Row from `reviews` (app_name, store_name, review_date).
+     * @param int   $newerReviews Stored reviews of the same app dated after this one.
+     * @return string|null
+     */
+    public function findReviewUrl($review, $newerReviews = 0) {
+        $appName = $review['app_name'] ?? '';
+        $storeKey = self::storeMatchKey($review['store_name'] ?? '');
+        if (!isset($this->appUrls[$appName]) || $storeKey === '') {
+            return null;
+        }
+
+        $reviewDate = (string) ($review['review_date'] ?? '');
+        $page = intdiv(max(0, (int) $newerReviews), 10) + 1;
+        $after = null;   // the review is on a later page than this...
+        $before = null;  // ...and on an earlier page than this
+        $step = 1;
+
+        for ($fetched = 0; $fetched < 8; $fetched++) {
+            // Short timeout: someone is waiting on the Send to Slack button.
+            $html = $this->fetchPage($this->appUrls[$appName] . "&page=$page", 10);
+            if (!$html) {
+                return null;
+            }
+
+            $pageReviews = $this->parseReviewsFromHTML($html);
+            foreach ($pageReviews as $candidate) {
+                if (self::storeMatchKey($candidate['store_name']) === $storeKey && ctype_digit($candidate['shopify_review_id'])) {
+                    return 'https://apps.shopify.com/reviews/' . $candidate['shopify_review_id'];
+                }
+            }
+
+            // Not here, so narrow down where it is from this page's dates. Dates the
+            // parser can't read come back as 1970-01-01 and are left out.
+            $dates = array_filter(array_column($pageReviews, 'review_date'), function ($date) {
+                return $date > '1970-01-01';
+            });
+
+            if (!$pageReviews) {
+                $before = $page; // past Shopify's last page
+            } elseif (!$dates) {
+                return null;
+            } elseif ($reviewDate < min($dates)) {
+                $after = $page;
+            } elseif ($reviewDate > max($dates)) {
+                $before = $page;
+            } elseif ($reviewDate === min($dates)) {
+                // Same day as this page's oldest review: it may have spilled onto the next page.
+                $after = $page;
+                $before = min($before ?? PHP_INT_MAX, $page + 2);
+            } elseif ($reviewDate === max($dates)) {
+                $after = max($after ?? 0, $page - 2);
+                $before = $page;
+            } else {
+                return null; // its date falls on this page, but it isn't here
+            }
+
+            if ($before === null) {
+                $page = $after + $step;              // gallop onwards until we overshoot
+            } elseif ($after === null) {
+                $page = max(1, $before - $step);     // gallop back towards page 1
+            } else {
+                $page = intdiv($after + $before, 2); // bracketed: bisect
+            }
+            $step *= 2;
+
+            if ($page <= ($after ?? 0) || ($before !== null && $page >= $before)) {
+                return null; // no page left to try
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Store name reduced to lowercase letters and digits, so spacing, punctuation
+     * and marks like "®" don't get in the way of matching the name on Shopify.
+     */
+    private static function storeMatchKey($storeName) {
+        return (string) preg_replace('/[^\p{L}\p{N}]+/u', '', strtolower((string) $storeName));
+    }
+
+    /**
      * Fetch HTML content from URL
      */
-    private function fetchPage($url) {
+    private function fetchPage($url, $timeout = 30) {
         $ch = curl_init();
         curl_setopt_array($ch, [
             CURLOPT_URL => $url,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_TIMEOUT => 30,
+            CURLOPT_TIMEOUT => $timeout,
             CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
             CURLOPT_HTTPHEADER => [
                 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -228,6 +321,7 @@ class ShopifyReviewScraper {
             }
 
             return [
+                'shopify_review_id' => $node->getAttribute('data-review-content-id'),
                 'store_name' => $storeName,
                 'country_name' => substr($country, 0, 50),
                 'rating' => $rating,

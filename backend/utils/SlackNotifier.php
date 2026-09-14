@@ -29,7 +29,8 @@ class SlackNotifier {
      * Build and send the assignment notification.
      *
      * @param array  $review    Row from `reviews` (app_name, store_name,
-     *                          country_name, rating, review_content, review_date).
+     *                          country_name, rating, review_content, review_date),
+     *                          plus an optional review_url the word "review" links to.
      * @param string $agentName Agent the review was credited to.
      * @return array{sent:bool, skipped?:string, error?:string}
      */
@@ -63,6 +64,13 @@ class SlackNotifier {
         $date = self::formatDate($review['review_date'] ?? null);
         $text = self::truncate(trim((string) ($review['review_content'] ?? '')), 1500);
 
+        // "review" links to the review on Shopify when we found one.
+        $reviewWord = 'review';
+        $reviewUrl = trim((string) ($review['review_url'] ?? ''));
+        if ($reviewUrl !== '') {
+            $reviewWord = '<' . self::escape($reviewUrl) . '|review>';
+        }
+
         $agentName = trim((string) $agentName);
         $memberId = $agentName !== '' ? slack_member_id($agentName) : null;
         $mention = $memberId ? '<@' . $memberId . '>' : '*' . self::escape($agentName) . '*';
@@ -72,7 +80,7 @@ class SlackNotifier {
                 'type' => 'section',
                 'text' => [
                     'type' => 'mrkdwn',
-                    'text' => '📝 *' . self::escape($store) . '* has just left a review!',
+                    'text' => '📝 *' . self::escape($store) . '* has just left a ' . $reviewWord . '!',
                 ],
             ],
             [
@@ -110,6 +118,9 @@ class SlackNotifier {
             'channel' => slack_channel_for_app($appName),
             'text' => self::buildFallbackText($agentName, $appName, $store, $rating),
             'blocks' => $blocks,
+            // Keep the review link a plain link: no Shopify preview card under the post.
+            'unfurl_links' => false,
+            'unfurl_media' => false,
         ];
     }
 

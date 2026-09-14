@@ -34,9 +34,24 @@ if (!defined('SLACK_DEFAULT_CHANNEL_ID')) {
 }
 
 /**
+ * Channel every post goes to in test mode, whichever app the review is for.
+ */
+if (!defined('SLACK_TEST_CHANNEL_ID')) {
+    define('SLACK_TEST_CHANNEL_ID', 'C0BU86WS0NR');
+}
+
+/**
  * Resolve the destination channel for an app name.
+ *
+ * Posting runs in one of two modes, set by SLACK_MODE: "test" (for working
+ * locally) sends every post to SLACK_TEST_CHANNEL_ID; "live", the default when
+ * it's unset, posts to the app's channel from slack_channel_map().
  */
 function slack_channel_for_app($appName) {
+    if (strtolower((string) slack_env(['SLACK_MODE'])) === 'test') {
+        return SLACK_TEST_CHANNEL_ID;
+    }
+
     $map = slack_channel_map();
     $key = strtolower(trim((string) $appName));
 
@@ -116,7 +131,15 @@ function slack_member_id($agentName) {
  * system env first, then an optional backend/config/.env file.
  */
 function slack_bot_token() {
-    foreach (['SLACK_BOT_TOKEN', 'SLACK_TOKEN'] as $name) {
+    return slack_env(['SLACK_BOT_TOKEN', 'SLACK_TOKEN']);
+}
+
+/**
+ * First non-empty value among $names: system env first, then the optional
+ * backend/config/.env file.
+ */
+function slack_env($names) {
+    foreach ($names as $name) {
         if (isset($_ENV[$name]) && $_ENV[$name] !== '') {
             return trim($_ENV[$name]);
         }
@@ -132,7 +155,7 @@ function slack_bot_token() {
     $envFile = __DIR__ . '/.env';
     if (file_exists($envFile)) {
         $env = parse_ini_file($envFile);
-        foreach (['SLACK_BOT_TOKEN', 'SLACK_TOKEN'] as $name) {
+        foreach ($names as $name) {
             if (!empty($env[$name])) {
                 return trim($env[$name]);
             }
