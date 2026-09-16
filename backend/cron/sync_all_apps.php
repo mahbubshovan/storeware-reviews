@@ -53,8 +53,16 @@ define('ANNOUNCE_MAX_AGE_DAYS', 1);
 $logFile = __DIR__ . '/../../logs/sync_all_apps.log';
 $lockFile = __DIR__ . '/../../logs/sync_all_apps.lock';
 
-if (!is_dir(dirname($logFile))) {
-    mkdir(dirname($logFile), 0755, true);
+$logDir = dirname($logFile);
+if (!is_dir($logDir)) {
+    mkdir($logDir, 0755, true);
+}
+
+// On the live host these logs sit under the web root, and they carry review text
+// and channel ids. Keep them off the web.
+if (!file_exists($logDir . '/.htaccess')) {
+    file_put_contents($logDir . '/.htaccess',
+        "Require all denied\n<IfModule !mod_authz_core.c>\n    Deny from all\n</IfModule>\n");
 }
 
 // Database reads $_SERVER['HTTP_HOST'] for its platform logging, which CLI has no
