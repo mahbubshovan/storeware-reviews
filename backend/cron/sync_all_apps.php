@@ -6,13 +6,12 @@
 // reads page 1 of the app's Shopify listing, saves reviews it hasn't seen,
 // mirrors them into access_reviews and refreshes app_metadata.
 //
-// A review is announced only when all three hold:
-//   * this run is what stored it (its id is above the app's highest id
-//     beforehand), so re-reading the same page changes nothing;
+// A review is announced when both hold:
 //   * it is dated today or yesterday (ANNOUNCE_MAX_AGE_DAYS), so a backfill of
 //     older reviews lands in the database quietly instead of flooding a channel;
-//   * it isn't already in review_announcements, which remembers every post and
-//     holds even if a row is deleted and scraped again under a new id.
+//   * review_announcements has no record of it — the same ledger the Send to
+//     Slack button writes to, so nothing a person already shared repeats, and a
+//     review missed while the sync was down still goes out on the next run.
 //
 // The post is the message the Send to Slack button builds, crediting whoever the
 // review names (config/agent_aliases.php) and leaving the credit line off when
@@ -40,6 +39,7 @@ require_once __DIR__ . '/../config/agent_aliases.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../scraper/UniversalLiveScraper.php';
 require_once __DIR__ . '/../utils/ReviewLink.php';
+require_once __DIR__ . '/../utils/ReviewAnnouncements.php';
 require_once __DIR__ . '/../utils/SlackNotifier.php';
 
 // Log timestamps and "how old is this review" follow Bangladesh time, the team's day.
@@ -69,38 +69,6 @@ function sync_log($message) {
     $line = '[' . date('Y-m-d H:i:s') . '] ' . $message;
     echo $line . PHP_EOL;
     file_put_contents($logFile, $line . PHP_EOL, FILE_APPEND);
-}
-
-/**
- * The ledger of announced reviews, created on first run.
- *
- * Keyed by app, store and review date rather than review id: a store reviews an
- * app once, so that triple identifies the review even if the row is rebuilt.
- */
-function ensure_announcement_ledger($conn) {
-    $conn->exec("
-        CREATE TABLE IF NOT EXISTS review_announcements (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            review_id INT NOT NULL,
-            app_name VARCHAR(100) NOT NULL,
-            store_name VARCHAR(255) NOT NULL,
-            review_date DATE NOT NULL,
-            channel VARCHAR(32) NOT NULL,
-            announced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE KEY uq_announced_review (app_name, store_name, review_date)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-    ");
-}
-
-/**
- * Whether this review has already been posted to Slack by an earlier run.
- */
-function already_announced($conn, $review) {
-    $stmt = $conn->prepare('SELECT 1 FROM review_announcements
-                            WHERE app_name = ? AND store_name = ? AND review_date = ? LIMIT 1');
-    $stmt->execute([$review['app_name'], $review['store_name'], $review['review_date']]);
-
-    return (bool) $stmt->fetchColumn();
 }
 
 /**
@@ -136,11 +104,7 @@ function announce_review($conn, $review, $remember = true) {
 
     if (!empty($result['sent'])) {
         if ($remember) {
-            $stmt = $conn->prepare('INSERT IGNORE INTO review_announcements
-                                        (review_id, app_name, store_name, review_date, channel)
-                                    VALUES (?, ?, ?, ?, ?)');
-            $stmt->execute([$review['id'], $review['app_name'], $review['store_name'],
-                            $review['review_date'], $channel]);
+            record_announcement($conn, $review, $channel);
         }
 
         sync_log(sprintf('     -> Slack %s: %s, %s, %s', $channel, $review['store_name'], $credit, $link));
@@ -197,18 +161,12 @@ $oldestWorthAnnouncing = date('Y-m-d', strtotime('-' . ANNOUNCE_MAX_AGE_DAYS . '
 $totalNew = 0;
 $announced = 0;
 $announceFailures = 0;
-$skipped = 0;
 $failed = [];
 
 sync_log('Sync started for ' . count($apps) . ' apps');
 
 foreach ($apps as $appName => $appSlug) {
     try {
-        // Anything stored above this id during the scrape is a review we hadn't seen.
-        $stmt = $conn->prepare('SELECT COALESCE(MAX(id), 0) FROM reviews WHERE app_name = ?');
-        $stmt->execute([$appName]);
-        $highestBefore = (int) $stmt->fetchColumn();
-
         // The scraper narrates its progress; keep that out of the log's way.
         ob_start();
         $result = $scraper->scrapeFirstPageOnly($appSlug, $appName);
@@ -228,29 +186,23 @@ foreach ($apps as $appName => $appSlug) {
             sync_log('     ' . str_replace("\n", "\n     ", substr($chatter, 0, 500)));
         }
 
-        // Announce what this run stored, oldest review first.
-        $stmt = $conn->prepare('SELECT id, app_name, store_name, country_name, rating,
-                                       review_content, review_date, earned_by
-                                FROM reviews
-                                WHERE app_name = ? AND id > ? AND is_active = TRUE
-                                ORDER BY review_date ASC, id ASC');
-        $stmt->execute([$appName, $highestBefore]);
+        // Everything recent enough to announce that no run, and nobody pressing
+        // Send to Slack, has posted yet — oldest review first.
+        $stmt = $conn->prepare('SELECT r.id, r.app_name, r.store_name, r.country_name, r.rating,
+                                       r.review_content, r.review_date, r.earned_by
+                                FROM reviews r
+                                LEFT JOIN review_announcements a
+                                       ON a.app_name = r.app_name
+                                      AND a.store_name = r.store_name
+                                      AND a.review_date = r.review_date
+                                WHERE r.app_name = ?
+                                  AND r.is_active = TRUE
+                                  AND r.review_date >= ?
+                                  AND a.id IS NULL
+                                ORDER BY r.review_date ASC, r.id ASC');
+        $stmt->execute([$appName, $oldestWorthAnnouncing]);
 
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $review) {
-            if ($review['review_date'] < $oldestWorthAnnouncing) {
-                $skipped++;
-                sync_log(sprintf('     -- %s: stored quietly, dated %s and older than %d days',
-                    $review['store_name'], $review['review_date'], ANNOUNCE_MAX_AGE_DAYS));
-                continue;
-            }
-
-            if (already_announced($conn, $review)) {
-                $skipped++;
-                sync_log(sprintf('     -- %s: announced by an earlier run, not posting again',
-                    $review['store_name']));
-                continue;
-            }
-
             if (announce_review($conn, $review)) {
                 $announced++;
             } else {
@@ -274,11 +226,10 @@ foreach ($apps as $appName => $appSlug) {
     sleep(3);
 }
 
-sync_log(sprintf('Finished in %ss — %d new review(s), %d announced in Slack%s%s, %d of %d apps synced%s',
+sync_log(sprintf('Finished in %ss — %d new review(s) stored, %d announced in Slack%s, %d of %d apps synced%s',
     round(microtime(true) - $startedAt, 1),
     $totalNew,
     $announced,
-    $skipped ? ", $skipped stored quietly" : '',
     $announceFailures ? " ($announceFailures failed to post)" : '',
     count($apps) - count($failed),
     count($apps),

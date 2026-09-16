@@ -12,6 +12,7 @@ require_once __DIR__ . '/../config/cors.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../scraper/ShopifyReviewScraper.php';
 require_once __DIR__ . '/../utils/ReviewLink.php';
+require_once __DIR__ . '/../utils/ReviewAnnouncements.php';
 require_once __DIR__ . '/../utils/SlackNotifier.php';
 
 header('Content-Type: application/json');
@@ -329,6 +330,9 @@ function handleSendToSlack($conn, $input) {
         $result = SlackNotifier::notifyReviewAssignment($review, $earnedBy);
 
         if (!empty($result['sent'])) {
+            // Tell the scheduled sync this one has been shared, so it won't repeat it.
+            record_announcement($conn, $review, slack_channel_for_app($review['app_name']));
+
             echo json_encode([
                 'success' => true,
                 'message' => 'Sent to Slack',
