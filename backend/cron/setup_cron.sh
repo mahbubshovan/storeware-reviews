@@ -46,6 +46,10 @@ CRON_ENTRIES="
 
 # Health check - runs every hour
 0 * * * * $PHP_PATH $BACKEND_DIR/cron/health_check.php >> $LOGS_DIR/health.log 2>&1
+
+# Review sync - Analytics tab sync for every app plus Slack announcements,
+# every 6 hours at 3 PM, 9 PM, 3 AM and 9 AM Bangladesh time
+0 3,9,15,21 * * * $PHP_PATH $BACKEND_DIR/cron/sync_all_apps.php >> $LOGS_DIR/sync_cron.out 2>&1
 "
 
 # Add cron entries
@@ -70,11 +74,13 @@ echo "Cron jobs configured:"
 echo "  • Background scraper: Every 5 minutes"
 echo "  • Log cleanup: Daily at 2 AM"
 echo "  • Health check: Every hour"
+echo "  • Review sync (all apps): Every 6 hours"
 echo ""
 echo "Log files:"
 echo "  • Background scraper: $LOGS_DIR/background_scraper.log"
 echo "  • Cron output: $LOGS_DIR/cron.log"
 echo "  • Health checks: $LOGS_DIR/health.log"
+echo "  • Review sync: $LOGS_DIR/sync_all_apps.log"
 echo ""
 echo -e "${YELLOW}To remove these cron jobs later, run:${NC}"
 echo "  crontab -e"

@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/apps.php';
 require_once __DIR__ . '/../scraper/UniversalLiveScraper.php';
 
 header('Content-Type: application/json');
@@ -37,17 +38,8 @@ try {
         exit;
     }
 
-    // Map app names to slugs for scraping - VERIFIED SHOPIFY SLUGS
-    $appSlugs = [
-        'StoreSEO' => 'storeseo',
-        'StoreFAQ' => 'storefaq',
-        'EasyFlow' => 'product-options-4',
-        'BetterDocs FAQ Knowledge Base' => 'betterdocs-knowledgebase',
-        'Vidify' => 'vidify',
-        'TrustSync' => 'customer-review-app'
-    ];
-
-    $appSlug = $appSlugs[$appName] ?? strtolower(str_replace(' ', '-', $appName));
+    // One list of apps and slugs, shared with available-apps.php and the cron.
+    $appSlug = shopify_app_slug($appName);
 
     // Scrape fresh data from Shopify (page 1 only for new reviews)
     $scraper = new UniversalLiveScraper();

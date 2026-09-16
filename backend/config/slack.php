@@ -34,26 +34,47 @@ if (!defined('SLACK_DEFAULT_CHANNEL_ID')) {
 }
 
 /**
- * Channel every post goes to in test mode, whichever app the review is for.
+ * Test channel for an app that isn't in the test map below.
  */
 if (!defined('SLACK_TEST_CHANNEL_ID')) {
     define('SLACK_TEST_CHANNEL_ID', 'C0BU86WS0NR');
 }
 
 /**
+ * Where each app posts while SLACK_MODE=test: three channels standing in for the
+ * team ones, so per-app routing can be watched before a post reaches anybody's
+ * real channel. Keys are lowercased app names, as in slack_channel_map().
+ */
+function slack_test_channel_map() {
+    return [
+        'storeseo' => 'C0BU86WS0NR',
+        'storefaq' => 'C0BU86WS0NR',
+        'vidify' => 'C05R6J3LK8R',
+        'trustsync' => 'C05R6J3LK8R',
+        'easyflow' => 'C0BV6QUEBKJ',
+        'betterdocs faq knowledge base' => 'C0BV6QUEBKJ',
+        // Alias used by some backend responses for the same app.
+        'betterdocs faq' => 'C0BV6QUEBKJ',
+    ];
+}
+
+/**
  * Resolve the destination channel for an app name.
  *
  * Posting runs in one of two modes, set by SLACK_MODE: "test" (for working
- * locally) sends every post to SLACK_TEST_CHANNEL_ID; "live", the default when
- * it's unset, posts to the app's channel from slack_channel_map().
+ * locally) routes by slack_test_channel_map(); "live", the default when it's
+ * unset, posts to the app's own channel from slack_channel_map().
  */
 function slack_channel_for_app($appName) {
+    $key = strtolower(trim((string) $appName));
+
     if (strtolower((string) slack_env(['SLACK_MODE'])) === 'test') {
-        return SLACK_TEST_CHANNEL_ID;
+        $testChannels = slack_test_channel_map();
+
+        return $testChannels[$key] ?? SLACK_TEST_CHANNEL_ID;
     }
 
     $map = slack_channel_map();
-    $key = strtolower(trim((string) $appName));
 
     if (isset($map[$key])) {
         return $map[$key];
