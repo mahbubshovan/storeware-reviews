@@ -118,7 +118,17 @@ function announce_review($conn, $review, $remember = true) {
 }
 
 $conn = (new Database())->getConnection();
-ensure_announcement_ledger($conn);
+
+// Without the ledger there's no way to know what has already been posted, so a
+// database that won't have it still gets its reviews synced — just silently,
+// rather than risk repeating a channel.
+$canAnnounce = true;
+try {
+    ensure_announcement_ledger($conn);
+} catch (Throwable $e) {
+    $canAnnounce = false;
+    sync_log('No announcements ledger (' . $e->getMessage() . ') — syncing without posting to Slack.');
+}
 
 // --test-post=<id>: announce one stored review and stop, for checking Slack.
 $testPostId = 0;
@@ -188,21 +198,25 @@ foreach ($apps as $appName => $appSlug) {
 
         // Everything recent enough to announce that no run, and nobody pressing
         // Send to Slack, has posted yet — oldest review first.
-        $stmt = $conn->prepare('SELECT r.id, r.app_name, r.store_name, r.country_name, r.rating,
-                                       r.review_content, r.review_date, r.earned_by
-                                FROM reviews r
-                                LEFT JOIN review_announcements a
-                                       ON a.app_name = r.app_name
-                                      AND a.store_name = r.store_name
-                                      AND a.review_date = r.review_date
-                                WHERE r.app_name = ?
-                                  AND r.is_active = TRUE
-                                  AND r.review_date >= ?
-                                  AND a.id IS NULL
-                                ORDER BY r.review_date ASC, r.id ASC');
-        $stmt->execute([$appName, $oldestWorthAnnouncing]);
+        $pending = [];
+        if ($canAnnounce) {
+            $stmt = $conn->prepare('SELECT r.id, r.app_name, r.store_name, r.country_name, r.rating,
+                                           r.review_content, r.review_date, r.earned_by
+                                    FROM reviews r
+                                    LEFT JOIN review_announcements a
+                                           ON a.app_name = r.app_name
+                                          AND a.store_name = r.store_name
+                                          AND a.review_date = r.review_date
+                                    WHERE r.app_name = ?
+                                      AND r.is_active = TRUE
+                                      AND r.review_date >= ?
+                                      AND a.id IS NULL
+                                    ORDER BY r.review_date ASC, r.id ASC');
+            $stmt->execute([$appName, $oldestWorthAnnouncing]);
+            $pending = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
 
-        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $review) {
+        foreach ($pending as $review) {
             if (announce_review($conn, $review)) {
                 $announced++;
             } else {
