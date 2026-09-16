@@ -1,21 +1,12 @@
 <?php
 require_once __DIR__ . '/../config/cors.php';
+require_once __DIR__ . '/../config/apps.php';
 
 try {
-    // 🔴 ALL 6 ORIGINAL APPS WITH VERIFIED LIVE SHOPIFY DATA
-    // These apps have been tested and confirmed to work with UniversalLiveScraper
-    $verifiedApps = [
-        'StoreSEO',
-        'StoreFAQ',
-        'Vidify',
-        'TrustSync',
-        'EasyFlow',
-        'BetterDocs FAQ Knowledge Base'
-    ];
-
+    // One list of apps, shared with the Analytics tab's sync and the cron.
     echo json_encode([
         'success' => true,
-        'apps' => $verifiedApps,
+        'apps' => shopify_app_names(),
         'note' => 'All apps use live data scraping from Shopify App Store'
     ]);
 
